@@ -21,3 +21,5 @@ data/mel_spectrograms.zip
 data/*.log
 stage_b_labels.py
 data/stage_b_labels.npz
+fetch_audio.py
+data/audio_status.json

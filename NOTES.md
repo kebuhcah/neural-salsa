@@ -193,7 +193,59 @@ collapses, and accuracy will not show it.
 
 ---
 
-## 5. Reference notes
+## 5. Online phase tracking (the problem actually worth solving)
+
+Batch decoding answers "what was this song's phase". The questions a dancer
+has are temporal: how fast can I tell? how fast do I recover after losing
+it? how fast do I notice a change? `stage_b_online.py` is a forward filter
+over the 8 phase states -- same model, read continuously instead of once.
+
+Reframing matters because it moves the operating point. Over 636 beats a
+22% classifier is already perfect; over one 8-count it is useless. Short
+windows put accuracy back in charge:
+
+| per-beat | 1x8ct | 2x8ct | 4x8ct |
+|---|---|---|---|
+| 25% | 36.7% | 49.2% | 65.4% |
+| 35% | 59.4% | 78.5% | 92.9% |
+| 50% | 84.7% | 97.2% | 99.8% |
+| 65% | 96.5% | 99.9% | 100.0% |
+
+### Lock latency (median beats, synthetic classifier)
+
+| per-beat | cold start | after a phase change |
+|---|---|---|
+| 35% | 10b | 16b |
+| 50% |  5b |  9b |
+| 65% |  3b |  7b |
+| 80% |  1b |  5b |
+
+**Recovery costs about 2x cold start.** A uniform prior has nothing to
+overcome; a confidently wrong one must first be dismantled. That matches the
+subjective experience of missing a phrase change -- harder than starting
+fresh, even though the music is no different.
+
+Human baseline is roughly a couple of bars (8-16 beats), so **a model needs
+~35-50% per-beat accuracy to lock as fast as a dancer.** Concrete target,
+and much stiffer than the batch framing implied.
+
+The reset prior `r` is the one knob. At r=5e-2 cold-start lock degrades badly
+(a 25% classifier never locks) because probability keeps leaking into count 1;
+at r=6e-4 it is stable but slower to follow a change. r in 1e-3..1e-2 looks
+like the usable band.
+
+### Architectural implication
+Per-beat classification then aggregation is probably the wrong shape. The
+clave is a *two-bar figure*; a single beat carries almost nothing while the
+pattern across a bar carries everything. That is why a dancer locks in two
+bars -- recognition of a known figure, not accumulation of weak evidence. So
+the model should consume a window of at least one full 8-count and classify
+its phase directly, and the headline experiment is **accuracy vs window
+length**, which is exactly the "how quickly can you tell?" curve.
+
+---
+
+## 6. Reference notes
 
 ### Shift-tolerant loss (Beat This!, ISMIR 2024)
 Model runs at 50 fps (22.05 kHz, hop 441, 128 mels, 30 Hz–10 kHz). Targets are
