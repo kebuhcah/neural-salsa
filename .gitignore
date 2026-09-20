@@ -19,3 +19,5 @@ data/mels/
 data/audio_fragments.zip
 data/mel_spectrograms.zip
 data/*.log
+stage_b_labels.py
+data/stage_b_labels.npz

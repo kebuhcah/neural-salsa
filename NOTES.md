@@ -148,7 +148,52 @@ pulse**: octave (get to dancer rate) then phase (which bar starts the
 
 ---
 
-## 4. Reference notes
+## 4. Stage B: decoding 8-count phase
+
+`stage_b_decode.py`. Given a beat grid, phase advances deterministically --
+beat j has count (phi + j) mod 8 for one unknown phi per segment. So the
+decode is a single aggregated choice, not per-beat argmax. With a symmetric
+error model the log-prob sum under hypothesis h is monotonic in the match
+count, so argmax reduces to "which offset agrees with most predictions".
+`decode_song` runs Viterbi over 8 states to allow rare phase resets (a phrase
+shorter than 8 beats), verified to recover a spliced reset exactly.
+
+### How good does the per-beat classifier need to be?
+Much worse than you would guess, if errors are independent (chance = 12.5%):
+
+| per-beat | 32 beats | 128 beats | 512 beats |
+|---|---|---|---|
+| 16% | 27.3% | 47.6% | 83.0% |
+| 20% | 47.9% | 83.7% | 99.9% |
+| 25% | 72.7% | 98.6% | 100.0% |
+
+Over a full song, a classifier barely above chance gives near-perfect
+song-level phase. **Per-beat accuracy is not the binding constraint.**
+
+### What actually decides it: the 1<->5 margin
+Independence is the wrong assumption. The obvious correlated error in salsa
+is confusing 1 with 5 -- the two halves of the 8-count are musically similar,
+and it is the mistake dancers themselves make. Let q = P(off by exactly 4):
+
+| p | q | margin | L=128 | L=636 |
+|---|---|---|---|---|
+| 0.25 | 0.20 | +0.05 | 81.0% | 96.9% |
+| 0.25 | 0.24 | +0.01 | 56.3% | 64.3% |
+| 0.25 | 0.26 | -0.01 | 45.3% | 32.8% |
+| 0.25 | 0.35 | -0.10 |  7.0% |  0.1% |
+
+Aggregation **amplifies whichever of p and q is larger; it does not average
+them.** A model leaning even slightly toward the 5 gets converted by the
+decoder into a confident, whole-song 180-degree error -- precisely the
+mistake Visual Salsa's own scoring calls "on-5".
+
+Consequence for training: instrument `confusion_margin` (p - q) from the
+start, not accuracy. A model can improve on accuracy while the margin
+collapses, and accuracy will not show it.
+
+---
+
+## 5. Reference notes
 
 ### Shift-tolerant loss (Beat This!, ISMIR 2024)
 Model runs at 50 fps (22.05 kHz, hop 441, 128 mels, 30 Hz–10 kHz). Targets are
