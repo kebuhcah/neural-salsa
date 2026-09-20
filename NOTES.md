@@ -245,7 +245,69 @@ length**, which is exactly the "how quickly can you tell?" curve.
 
 ---
 
-## 6. Reference notes
+## 6. First phase classifier
+
+`build_features.py` (beat-synchronous log-mel) + `train_phase.py`. Causal
+framing: given the W beats just heard, what count is the current beat?
+Splits are by song. Chance = 0.125.
+
+### The one change that made it work
+With a single global mean/std the model sat at exactly chance -- loss pinned
+at ln 8 = 2.079, and not just on validation: it would not fit the *training*
+set either, while happily memorising 256 samples in 100 steps. Songs differ
+so much in loudness and spectral tilt that the between-song variance swamped
+the within-song phase cue. **Per-song normalisation** moved validation
+accuracy from 0.127 to 0.68 with no other change.
+
+Worth remembering as a debugging pattern: "can memorise a small batch but
+cannot fit the full training set" points at the input distribution, not the
+model.
+
+Also cost an hour to a self-inflicted bug -- the first head global-average-
+pooled over time, which makes phase *provably* unrecoverable, since phase is
+entirely a question of where in the window things happen.
+
+### Accuracy vs listening length
+
+| W (beats) | acc | q (1<->5) | margin |
+|---|---|---|---|
+| 1 | 0.436 | 0.259 | +0.177 |
+| 2 | 0.485 | 0.264 | +0.221 |
+| 4 | 0.613 | 0.271 | +0.342 |
+| 8 | 0.688 | 0.213 | +0.475 |
+| 16 | 0.701 | 0.236 | +0.466 |
+
+W=16 needs 8 epochs, not 3; at the sweep's shared 3-epoch budget it scored
+0.559 and looked like a regression, because its head carries twice the
+parameters. Given enough training the curve is monotonic.
+
+Three things stand out.
+
+**A single beat already gives 0.436** against 0.125 chance. Phase is not only
+carried by the multi-bar pattern; one beat of audio in isolation identifies
+its position in the 8-count nearly half the time. That argues there is a
+strong per-count timbral signature (bass tumbao placement, conga slap vs
+open tone) on top of the figure-level cue.
+
+**The 1<->5 confusion is the dominant error, exactly as predicted.** At
+W=8, accuracy 0.688 leaves 0.312 of error mass; spread uniformly over the
+7 wrong classes that would be 0.045 each, but q = 0.213 -- nearly **five
+times** the uniform rate. The model's mistake is specifically the dancer's
+mistake.
+
+**It saturates at one 8-count.** 0.688 at W=8 against 0.701 at W=16 --
+doubling the context buys 1.3 points. The model, like a dancer, has
+essentially everything it needs from a single 8-count, which is a nice
+independent echo of the "couple of bars" intuition that motivated the
+reframing.
+
+The margin is comfortably positive throughout, so the decoder resolves
+correctly; and at p~0.69 the latency table in section 5 puts cold-start lock
+at ~3 beats, i.e. faster than a human.
+
+Caveats: single run per point, 16 validation songs, one seed. Train accuracy
+~0.9 against val ~0.69 means it is overfitting, so these numbers will move.
+Nothing here is tuned.
 
 ### Shift-tolerant loss (Beat This!, ISMIR 2024)
 Model runs at 50 fps (22.05 kHz, hop 441, 128 mels, 30 Hz–10 kHz). Targets are
