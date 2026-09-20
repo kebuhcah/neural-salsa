@@ -87,7 +87,68 @@ investigable question.
 
 ---
 
-## 3. Reference notes
+## 3. Stage A probe: does Beat This! track salsa?
+
+Ran Beat This! (`final0`, no DBN) over all 124 ISMIR fragments. Script:
+`stage_a_probe.py`, results `data/stage_a_probe.json`.
+
+**Data caveat found in the process.** `audio_fragments.zip` is 124 x 30s
+excerpts (1.03h), not full songs, and *nothing documents which 30 seconds*.
+The annotations are full-song, so ground truth can only be attached by
+recovering each fragment's offset by search. Music is near-periodic, so the
+offset is identifiable only modulo the beat period; fitting it to maximise
+the score would bias results, so the probe fits the offset on the first 15s
+and scores on the last 15s. Also: `mel_spectrograms.zip` is 124 rendered
+1200x600 RGBA matplotlib PNGs, not feature arrays -- unusable, compute mels
+from audio instead.
+
+### Result 1: metrical level is a coin flip (alignment-free, trustworthy)
+Comparing median detected IBI to median annotated IBI needs no offset, so
+this is unaffected by the caveat above.
+
+| detected / annotated | songs |
+|---|---|
+| ~1x (same level)  | 51 (41.5%) |
+| ~2x (double)      | 63 (51.2%) |
+| other             | 9  ( 7.3%) |
+
+Median ratio 1.908. **But it is not random** -- it is a tempo prior:
+
+- annotated < 85 bpm: **34 of 42 doubled** (81%)
+- annotated > 95 bpm: **7 of 34 doubled** (21%)
+
+Beat This! gravitates to a preferred ~100-180 bpm band and picks whichever
+metrical level lands there. Detected tempo median 122.4 vs annotated 90.1.
+
+### Result 2: it finds *a* pulse well, just not reliably the right one
+Held-out F-measure (implementation verified identical to
+`mir_eval.beat.f_measure`, max diff 0.000000 over 300 random trials):
+
+| | mean F | median F | >0.8 | <0.3 |
+|---|---|---|---|---|
+| at detected rate | 0.578 | 0.625 | 28 | 23 |
+| at half rate     | 0.558 | 0.611 | 34 | 33 |
+| **best of either** | **0.702** | **0.824** | 62 | 17 |
+
+The 0.625 -> 0.824 jump when the octave is forgiven *is* the octave cost.
+Fixed-level numbers sit near the paper's TCN baselines (0.659/0.683).
+
+Caveat: F-measures depend on recovered offsets. The 17 songs below 0.3 even
+best-of-either may be alignment failures rather than tracking failures --
+indistinguishable without full audio. Result 1 is not subject to this.
+
+### Consequence
+Don't train a pulse model from scratch. Beat This! locates the pulse; what
+it does not do is pick the dancer's metrical level, and its downbeats imply
+~3.77 beats/bar, i.e. 4/4 bars -- bar-level phase, not 8-count phase.
+
+So the real pipeline is **two ambiguity-resolution steps on top of a good
+pulse**: octave (get to dancer rate) then phase (which bar starts the
+8-count). Same species of problem, twice.
+
+---
+
+## 4. Reference notes
 
 ### Shift-tolerant loss (Beat This!, ISMIR 2024)
 Model runs at 50 fps (22.05 kHz, hop 441, 128 mels, 30 Hz–10 kHz). Targets are

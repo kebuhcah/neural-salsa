@@ -12,3 +12,10 @@ visualsalsa_grid.py
 NOTES-visualsalsa.md
 data/visualsalsa_catalog.json
 data/visualsalsa_free_songs.json
+.venv/
+data/audio/
+data/audio_frag/
+data/mels/
+data/audio_fragments.zip
+data/mel_spectrograms.zip
+data/*.log
