@@ -1,0 +1,14 @@
+data/.token
+data/songs/
+__pycache__/
+*.pyc
+data/salsa_beats.zip
+
+# Visual Salsa: licensed to us via subscription, not ours to redistribute.
+# Tooling and data stay local.
+fetch_grids.py
+get_token.md
+visualsalsa_grid.py
+NOTES-visualsalsa.md
+data/visualsalsa_catalog.json
+data/visualsalsa_free_songs.json
