@@ -326,6 +326,154 @@ Caveats: single run per point, 16 validation songs, one seed. Train accuracy
 ~0.9 against val ~0.69 means it is overfitting, so these numbers will move.
 Nothing here is tuned.
 
+---
+
+## 7. Real lock latency (measured, not simulated)
+
+`stage_b_eval_online.py` drives the forward filter with the trained W=8
+classifier (val acc 0.687, margin +0.469) over 16 held-out songs.
+
+| | median | p90 |
+|---|---|---|
+| cold start, naive updates | 5.0b | 24b |
+| recovery from a wrong state | 18.5b | 116b |
+| follow a real annotated reset | 20.0b | 208b (n=5) |
+
+Cold start at 5 beats beats the human "couple of bars"; recovery is much
+worse than cold start with a heavy tail, as the synthetic study predicted
+qualitatively. That study said ~3 beats though, so it was optimistic by
+2-5x -- the cost of assuming independent errors.
+
+### The filter is overconfident, and that is the real finding
+Consecutive windows share W-1 of their W beats, but the filter multiplies
+their outputs as independent evidence:
+
+    stated confidence 0.99+  ->  actually correct 0.85
+
+The classifier itself is well calibrated (mean stated 0.701 vs actual 0.686),
+so the overconfidence is manufactured entirely by the filter. No point
+temperature-scaling the model.
+
+**Tempering** (likelihood^a before the update) trades latency for honesty at
+a brutal rate; 1/W, the obvious correction, is nowhere near enough:
+
+| temper | lock median | mean calibration error |
+|---|---|---|
+| 1.0 | 5b | 0.269 |
+| 0.125 (=1/W) | 17.5b | 0.135 |
+| 0.0625 | 32b | 0.088 |
+| 0.0156 | 121b | 0.046 |
+
+**Non-overlapping windows** attack the redundancy at source and dominate:
+
+| stride | lock median | p90 | calibration error |
+|---|---|---|---|
+| 1 | 5b | 24b | 0.290 |
+| 4 | 14b | 64b | 0.139 |
+| 8 (no overlap) | 16b | 140b | 0.105 |
+
+At matched calibration, stride beats tempering roughly 2:1 on latency. But
+stride 8 is *still* overconfident (0.99+ -> 0.94), and with zero overlap the
+evidence should be near-independent -- so the residual is error correlation
+from musical content, errors clustering by section. That is the temporal
+clustering left unmodelled in section 5, now measured.
+
+### Error structure: one mistake, over and over
+Offset distribution over 12,972 windows (uniform would be 0.045 each):
+
+| offset | rate | vs uniform |
+|---|---|---|
+| 0 (correct) | 0.686 | - |
+| 4 (**the 1<->5 flip**) | **0.212** | **4.73x** |
+| all six others | 0.008-0.032 | 0.18-0.71x |
+
+Every non-flip error is *below* uniform. Two thirds of all errors are the
+flip, so fixing 1-vs-5 alone would take accuracy from 0.69 to ~0.90.
+
+### Two bugs found here
+- `find_resets` assumed 1-indexed counts, but `build_features.py` stores them
+  0-indexed while `stage_b_labels.py` stores them 1-indexed. Every 7->0 wrap
+  read as a reset: 11,081 instead of 56. The two files should be reconciled.
+- `PhaseFilter` advanced phase by exactly 1 per update, so subsampling for the
+  stride experiment silently broke the transition model (nonsense 489-beat
+  latency). It now takes a `stride` argument.
+
+---
+
+## 8. Frequency-band ablation: not the clave, and it depends on the song
+
+`ablation.py`. *Knockout* blanks a band at test time on the trained model
+(measures RELIANCE; confounded, blanked input is out of distribution).
+*Isolate* retrains on one band (measures what the band CONTAINS).
+
+Mel-bin ranges computed from `melscale_fbanks` with the feature pipeline's
+parameters. **The instrument labels are prior knowledge, not verified against
+this audio** -- the weakest link here, since the clave conclusion assumes the
+clave lives in 2.5-6kHz. A fine-grained sweep with no instrument labels would
+be the honest version.
+
+### Knockout, paired over the same 16 songs
+| blanked band | mean d | 95% CI | sig |
+|---|---|---|---|
+| bass <250Hz | -0.122 | [-0.163, -0.081] | **yes** |
+| low-mid 250-800 | -0.019 | [-0.034, -0.004] | yes (marginal) |
+| mid 800-2.5k | -0.007 | [-0.028, +0.013] | no |
+| high-mid 2.5-6k (**clave**) | +0.007 | [-0.011, +0.026] | no |
+| high >6k | +0.001 | [-0.013, +0.016] | no |
+
+The clave hypothesis that motivated the experiment is not supported:
+blanking that band costs nothing. What the model leans on is the bass.
+
+(CIs use 1.96; with df=15 the t multiplier is 2.131, so these are ~9% too
+narrow. Only the marginal low-mid result is sensitive to that.)
+
+### Isolate, per-song, 3 seeds
+| band | mean | seed sd | paired d vs FULL | 95% CI (t, df=15) | sig |
+|---|---|---|---|---|---|
+| FULL | 0.676 | 0.025 | - | - | - |
+| bass <250Hz | 0.630 | 0.012 | -0.045 | [-0.149, +0.058] | no |
+| low-mid 250-800 | 0.624 | 0.009 | -0.052 | [-0.121, +0.018] | no |
+| mid 800-2.5k | 0.595 | 0.028 | -0.081 | [-0.130, -0.032] | **yes** |
+| high-mid 2.5-6k | 0.546 | 0.008 | -0.129 | [-0.184, -0.075] | **yes** |
+| high >6k | 0.515 | 0.008 | -0.161 | [-0.223, -0.098] | **yes** |
+
+Seed noise is small (0.008-0.028); song variation is ~10x larger
+(0.139-0.236), so pairing is essential. **A bass-only model is statistically
+indistinguishable from the full spectrum** -- twelve mel bins under 250Hz buy
+essentially everything. An earlier single-seed run put low-mid above bass;
+reseeding flips it, so that ordering was noise.
+
+### Which band carries the phase is a property of the SONG
+| song | full | bass-only | cowbell band |
+|---|---|---|---|
+| Lluvia Con Nieve | 0.436 | **0.800** | 0.230 |
+| Si Supieras | 0.536 | 0.761 | 0.312 |
+| Yamulemau | 0.869 | 0.390 | **0.882** |
+| Sin Salsa No Hay Paraiso | 0.840 | 0.591 | **0.889** |
+
+Opposite regimes. And **the full model can be worse than one of its own
+bands**: on Lluvia it scores 0.436 while bass-only gets 0.800. The cue is
+present in a band it measurably relies on and it still fails, so it is being
+misled by the other bands rather than starved. Bass beats full on 4/16 songs.
+
+That is a concrete architectural weakness -- one fixed weighting over
+frequency instead of per-song selection. Gating or attention over bands
+should help, which is a testable prediction.
+
+### On the human comparison
+A listener reports the beat in Lluvia Con Nieve as very clear via cowbell and
+piano. This model gets 0.230 and 0.456 from those bands on that song, and
+0.800 from the bass. Human and model use different cues; the listener's
+perception is not contradicted, the model simply cannot extract it here.
+
+### Still to do
+Latency per band, not just accuracy -- a band could reach the same accuracy
+far more slowly, and "how fast can you tell" is the original question.
+
+---
+
+## 9. Reference notes
+
 ### Shift-tolerant loss (Beat This!, ISMIR 2024)
 Model runs at 50 fps (22.05 kHz, hop 441, 128 mels, 30 Hz–10 kHz). Targets are
 delta spikes; plain BCE penalizes a 20 ms miss as hard as a total miss, while
