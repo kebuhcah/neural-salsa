@@ -21,15 +21,20 @@ N = 8
 class PhaseFilter:
     """Forward algorithm over 8 phase states. One update per beat."""
 
-    def __init__(self, reset_prob=6e-4):
+    def __init__(self, reset_prob=6e-4, stride=1):
         self.r = reset_prob
+        # Beats advanced per update. Only 1 when every beat is observed; if
+        # the caller subsamples (e.g. to decorrelate overlapping windows) the
+        # phase advances by `stride` between updates, and rolling by 1 instead
+        # silently destroys the transition model.
+        self.stride = stride
         self.belief = np.full(N, 1.0 / N)
 
     def update(self, likelihood):
         """likelihood: (8,) P(observation | count). Returns posterior."""
         b = self.belief
-        # Predict: phase advances by one; with prob r the phrase restarts at 1.
-        pred = (1 - self.r) * np.roll(b, 1)
+        # Predict: phase advances by `stride`; with prob r the phrase restarts.
+        pred = (1 - self.r) * np.roll(b, self.stride)
         pred[0] += self.r * b.sum()
         # Correct.
         post = pred * np.asarray(likelihood, dtype=float)
