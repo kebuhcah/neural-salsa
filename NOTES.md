@@ -472,7 +472,35 @@ far more slowly, and "how fast can you tell" is the original question.
 
 ---
 
-## 9. Reference notes
+## 9. What is in this repo
+
+Tracked (generic; reads only `data/features/*.npz`):
+`train_phase.py` model + training loop, `ablation.py` band ablation,
+`stage_b_eval_online.py` latency/calibration, `stage_b_decode.py` batch
+decoder, `stage_b_online.py` forward filter.
+
+Not tracked: the Visual Salsa ingestion layer, which imports a decoder for a
+proprietary format and handles subscription-licensed data
+(`fetch_grids.py`, `fetch_audio.py`, `build_features.py`, `stage_b_labels.py`,
+`spectro_explorer.py`, `visualsalsa_grid.py`, `data/songs/`, `data/audio/`).
+
+### The data contract
+Everything tracked here consumes one thing: `data/features/<id>.npz` with
+
+    feats    float16 [n_beats*16, 128]   beat-synchronous log-mel,
+                                         16 frames per beat, 128 mel bands
+                                         (22.05kHz, hop 256, 30Hz-10kHz)
+    counts   int8    [n_beats]           8-count position, 0-indexed
+                                         (0 == count "1")
+    trusted  bool    [n_beats]           false inside unanchored stretches
+    times    float32 [n_beats]           beat times in seconds
+
+Any source of beat-annotated audio can produce that, so the modelling code is
+not tied to this dataset.
+
+---
+
+## 10. Reference notes
 
 ### Shift-tolerant loss (Beat This!, ISMIR 2024)
 Model runs at 50 fps (22.05 kHz, hop 441, 128 mels, 30 Hz–10 kHz). Targets are

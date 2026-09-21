@@ -4,8 +4,10 @@ __pycache__/
 *.pyc
 data/salsa_beats.zip
 
-# Visual Salsa: licensed to us via subscription, not ours to redistribute.
-# Tooling and data stay local.
+# Visual Salsa ingestion layer: imports the proprietary grid decoder and/or
+# handles licensed data. Stays local. The modelling code (train_phase.py,
+# ablation.py, stage_b_eval_online.py) has no such dependency -- it reads only
+# data/features/*.npz -- so it is tracked.
 fetch_grids.py
 get_token.md
 visualsalsa_grid.py
@@ -27,11 +29,7 @@ verify_alignment.py
 data/alignment.json
 build_features.py
 data/features/
-train_phase.py
-data/phase_sweep.json
-stage_b_eval_online.py
 data/phase_w8.pt
-ablation.py
 data/ablation_*.json
 spectro_explorer.py
 data/explorer/
