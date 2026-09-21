@@ -251,21 +251,38 @@ length**, which is exactly the "how quickly can you tell?" curve.
 framing: given the W beats just heard, what count is the current beat?
 Splits are by song. Chance = 0.125.
 
-### The one change that made it work
-With a single global mean/std the model sat at exactly chance -- loss pinned
-at ln 8 = 2.079, and not just on validation: it would not fit the *training*
-set either, while happily memorising 256 samples in 100 steps. Songs differ
-so much in loudness and spectral tilt that the between-song variance swamped
-the within-song phase cue. **Per-song normalisation** moved validation
-accuracy from 0.127 to 0.68 with no other change.
+### The bug that pinned it at chance: float16 overflow
+The features are stored float16 to save disk. The normalisation constants
+were computed on that array directly:
 
-Worth remembering as a debugging pattern: "can memorise a small batch but
-cannot fit the full training set" points at the input distribution, not the
-model.
+    sample = np.concatenate([songs[i]["feats"][:4000] for i in tr_ids[:24]])
+    mean, std = float(sample.mean()), float(sample.std()) + 1e-6
 
-Also cost an hour to a self-inflicted bug -- the first head global-average-
-pooled over time, which makes phase *provably* unrecoverable, since phase is
-entirely a question of where in the window things happen.
+12.3M float16 values summed for the variance overflows -- float16 tops out at
+65504 and the true sum of squares is ~1e8. So **std came out `inf`**, and
+`(X - mean) / inf` made **every input exactly zero**. The model was being fed
+a constant. Loss therefore sat at exactly ln 8, the best achievable output
+when the input carries no information, and could not fit even the training
+set.
+
+numpy did emit `RuntimeWarning: overflow encountered in reduce`. It was
+filtered out of the logs by a `grep -v` meant to suppress unrelated noise.
+
+**The fix was `.astype(np.float32)` before computing the statistics.** It
+arrived bundled with a switch to per-song normalisation, which is why that
+was initially credited. A controlled rerun shows the grouping is not what
+mattered -- with float32 constants, global normalisation reaches val 0.728
+and per-song 0.711 on an identical budget. Global is, if anything, marginally
+better. Per-song is retained as harmless.
+
+Debugging notes worth keeping:
+- Loss pinned at *exactly* the label entropy means zero information is
+  reaching the model. Suspect the input, not the architecture.
+- The "overfit a small batch" test passed throughout and was misleading here:
+  it computed its own normalisation from an already-float32 array, so it never
+  reproduced the overflow. A smoke test that recomputes setup rather than
+  reusing the real path can hide the bug it is meant to catch.
+- Do not grep warnings out of training logs.
 
 ### Accuracy vs listening length
 
