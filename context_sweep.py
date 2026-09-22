@@ -22,6 +22,7 @@ ap.add_argument("--windows", default="8,16,24,32")
 ap.add_argument("--kind", default="gru")
 ap.add_argument("--epochs", type=int, default=4)
 ap.add_argument("--seeds", type=int, default=2)
+ap.add_argument("--micro", type=int, default=None)
 a = ap.parse_args()
 
 songs = load_all()
@@ -38,7 +39,7 @@ for W in [int(x) for x in a.windows.split(",")]:
     vi = {k: v for k, v in vi.items() if len(v) >= 64}
     per_seed = []
     for s in range(a.seeds):
-        out, npar = run(a.kind, W, songs, a.epochs, s, tr, vi)
+        out, npar = run(a.kind, W, songs, a.epochs, s, tr, vi, micro=a.micro)
         per_seed.append(out)
     res[W] = per_seed
     M = lambda k: np.mean([[v[k] for v in o.values()] for o in per_seed])

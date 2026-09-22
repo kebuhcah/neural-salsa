@@ -523,6 +523,39 @@ the W=24 result is not a training-budget artefact.
 Interpretation: telling half 1 from half 2 seems to need *seeing the
 asymmetry repeat*. One cycle gives no second instance to compare against.
 
+### The curve peaks near W=24 and then declines
+Extending past 24 needed gradient accumulation -- at W=48 the first conv
+holds full time x mel resolution at 32 channels, so one activation is
+128*32*768*128*4 = 1.6GB, and the machine (16GB, ~13GB already committed)
+could not supply it. Splitting the batch and accumulating fixes the memory.
+
+**But accumulation is not neutral here.** It is identical for the *gradient*,
+yet this trunk uses BatchNorm, whose statistics are computed per forward
+pass: at micro=32 the model normalises over 32 samples rather than 128 and
+updates running stats four times per step from noisier estimates. A code
+comment claiming equivalence was simply wrong. So a control was needed:
+
+| W | micro | seeds | acc | q | h | r |
+|---|---|---|---|---|---|---|
+| 8 | 128 | 2 | 0.667 | 0.224 | 0.725 | 0.891 |
+| 16 | 128 | 2 | 0.698 | 0.223 | 0.739 | 0.921 |
+| 24 | 128 | 2 | **0.765** | 0.194 | **0.785** | 0.959 |
+| 24 | 32 | 1 | 0.727 | 0.228 | 0.752 | 0.955 |
+| 32 | 32 | 1 | 0.642 | 0.242 | 0.696 | 0.884 |
+
+Micro-batching alone costs ~0.038 at W=24 (0.765 -> 0.727), so the two
+regimes are not directly comparable. Against the *matched* control, W=32
+still loses 0.085 (0.727 -> 0.642). **The decline past W=24 is real, not an
+artefact of the memory workaround** -- though both large-W points are single
+seed, so treat the peak location as approximate.
+
+Best configuration so far: **gru head, W=24, acc 0.765, h 0.785** -- up from
+0.686 / 0.740 for the original W=8 flatten baseline.
+
+Worth fixing before any further large-W work: swap BatchNorm for GroupNorm,
+which is batch-size independent. That removes the confound entirely and makes
+accumulation genuinely free, which large windows need.
+
 ---
 
 ## 9. What is in this repo

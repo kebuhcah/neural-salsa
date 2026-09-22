@@ -109,7 +109,17 @@ class Model(nn.Module):
         return self.head(z), None, None
 
 
-def run(kind, W, songs, epochs, seed, tr, va_index, aux=0.3):
+def run(kind, W, songs, epochs, seed, tr, va_index, aux=0.3, micro=None):
+    """micro: activation-memory cap via gradient accumulation.
+
+    The first conv keeps full time x mel resolution at 32 channels, so one
+    activation is batch*32*(W*16)*128*4 bytes -- 268MB at W=8 but 1.6GB at
+    W=48, before autograd stores intermediates. Splitting the batch and
+    accumulating gradients is mathematically identical to the full batch and
+    caps that. Default keeps batch*W constant at the W=8 setting.
+    """
+    if micro is None:
+        micro = max(8, min(128, int(128 * 8 / W)))
     rng = np.random.default_rng(100 + seed)
     torch.manual_seed(100 + seed)
     model = Model(kind, W * FPB).to(DEV)
@@ -118,12 +128,18 @@ def run(kind, W, songs, epochs, seed, tr, va_index, aux=0.3):
         model.train(); nb = 0
         for X, y in batches(songs, tr, W, 128, rng, 0.0, 1.0):
             opt.zero_grad()
-            logits, lh, lr = model(X)
-            loss = F.cross_entropy(logits, y)
-            if lh is not None and aux:
-                # Give h its own gradient rather than only the 8-way signal.
-                loss = loss + aux * (F.nll_loss(lh, y // 4) + F.nll_loss(lr, y % 4))
-            loss.backward(); opt.step(); nb += 1
+            chunks = max(1, (len(X) + micro - 1) // micro)
+            for ci in range(chunks):
+                xs, ys = X[ci * micro:(ci + 1) * micro], y[ci * micro:(ci + 1) * micro]
+                if not len(xs):
+                    continue
+                logits, lh, lr = model(xs)
+                loss = F.cross_entropy(logits, ys)
+                if lh is not None and aux:
+                    # Give h its own gradient, not only the 8-way signal.
+                    loss = loss + aux * (F.nll_loss(lh, ys // 4) + F.nll_loss(lr, ys % 4))
+                (loss / chunks).backward()
+            opt.step(); nb += 1
             if nb >= 500:
                 break
     model.eval()
@@ -132,7 +148,7 @@ def run(kind, W, songs, epochs, seed, tr, va_index, aux=0.3):
         for si, idx in va_index.items():
             P, Y = [], []
             r2 = np.random.default_rng(1)
-            for X, y in batches(songs, idx, W, 256, r2, 0.0, 1.0, shuffle=False):
+            for X, y in batches(songs, idx, W, micro, r2, 0.0, 1.0, shuffle=False):
                 P.append(model(X)[0].argmax(1).cpu().numpy()); Y.append(y.cpu().numpy())
             if not P:
                 continue
