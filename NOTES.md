@@ -472,6 +472,59 @@ far more slowly, and "how fast can you tell" is the original question.
 
 ---
 
+## 9. Context length is the lever, not the head
+
+Two experiments, run after the error decomposition showed where the headroom
+is. Decomposing the count as c = 4h + r (h = which half of the 8-count, r =
+position within it), the baseline had effectively solved r and was near a
+coinflip on h:
+
+    8-way accuracy  0.686        r = c %% 4   0.898  (chance 0.250)
+                                 h = c // 4  0.740  (chance 0.500)
+
+Perfect h alone would take accuracy from 0.686 to 0.898.
+
+### Architectures: nothing moved (W=8, 3 epochs, 2 seeds)
+| arch | params | acc | q | h | r |
+|---|---|---|---|---|---|
+| flatten (baseline) | 619,720 | 0.671 | 0.245 | 0.714 | 0.916 |
+| gru | 293,320 | 0.659 | 0.236 | 0.715 | 0.895 |
+| factor (structural h/r split + aux loss) | 619,206 | 0.662 | 0.253 | 0.714 | 0.915 |
+| gruf | 292,806 | 0.669 | 0.239 | 0.724 | 0.908 |
+| halves (encode each half, compare) | 295,878 | 0.663 | 0.239 | 0.723 | 0.902 |
+
+The spread on h is 0.714-0.724, inside seed noise. Two of these were designed
+specifically to attack h -- `factor` builds the 8-way distribution as
+log p(h) + log p(r) so the model cannot score without committing on h, and
+`halves` encodes the two halves separately and compares them. Neither helped.
+**The head is not the bottleneck.** The GRU variants do match at half the
+parameters, so the flatten head was mostly wasted capacity.
+
+### Context: large, monotonic, still climbing (gru head, 4 epochs, 2 seeds)
+| W | 8-counts seen | acc | q (1<->5) | h | r |
+|---|---|---|---|---|---|
+| 8 | 1.0 | 0.667 | 0.224 | 0.725 | 0.891 |
+| 16 | 2.0 | 0.698 | 0.223 | 0.739 | 0.921 |
+| 24 | 3.0 | **0.765** | **0.194** | **0.785** | **0.959** |
+
++0.098 accuracy from context alone -- an order of magnitude more than any
+architectural change, and the gain is *accelerating* (+0.031 then +0.067).
+The 1<->5 flip rate finally moves too, 0.224 -> 0.194, having been immovable
+across every architecture.
+
+**This corrects section 6**, which concluded from a W=8 vs W=16 flatten
+comparison that accuracy "saturates at one 8-count". That comparison was
+confounded: W=16 was undertrained at the shared budget. With a matched budget
+and a head that handles long sequences, context keeps paying.
+
+Budget was also checked here: W=8 scores 0.667 at 4 epochs vs 0.659 at 3, so
+the W=24 result is not a training-budget artefact.
+
+Interpretation: telling half 1 from half 2 seems to need *seeing the
+asymmetry repeat*. One cycle gives no second instance to compare against.
+
+---
+
 ## 9. What is in this repo
 
 Tracked (generic; reads only `data/features/*.npz`):

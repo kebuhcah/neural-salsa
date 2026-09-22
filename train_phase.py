@@ -40,6 +40,10 @@ def load_all():
         # dominates and the model sits at chance (loss pinned at ln 8) even on
         # the training set. This single change is what makes the task learnable.
         f = (f - f.mean()) / (f.std() + 1e-6)
+        # Keep the resident copy float16 and cast per batch. Full float32 for
+        # 101 songs is ~600MB, which matters on a machine already swapping;
+        # the cast is cheap next to the forward pass.
+        f = f.astype(np.float16)
         songs.append({"feats": f, "counts": z["counts"],
                       "trusted": z["trusted"], "id": str(z["id"]),
                       "title": str(z["title"])})
