@@ -31,21 +31,49 @@ import torch.nn.functional as F
 from train_phase import load_all, make_index, batches, DEV, FPB, N_MELS
 
 ROOT = Path(__file__).resolve().parent
+CLIP = 0.0          # >0 enables gradient-norm clipping
+
+
+# Trunk variants. Two things were changed at once earlier -- BatchNorm ->
+# GroupNorm and pool-after -> stride-2 conv -- and the result got worse and
+# less stable, with no way to tell which change did it. Both are now flags so
+# they can be varied one at a time.
+TRUNK_NORM = "batch"        # "batch" | "group"
+TRUNK_DOWN = "pool"         # "pool"  | "stride"
 
 
 class Trunk(nn.Module):
-    """3 conv blocks, then average away frequency. Keeps the time axis."""
+    """3 conv blocks, then average away frequency. Keeps the time axis.
 
-    def __init__(self, ch=(1, 32, 64, 128)):
+    `down="stride"` downsamples inside the first conv instead of pooling after
+    it, which cuts that layer's activation memory 4x (1.6GB -> 0.4GB at W=48,
+    batch 128) for the same output resolution.
+
+    `norm="group"` removes BatchNorm's dependence on batch composition, which
+    otherwise makes any batch-splitting workaround change the computation.
+    """
+
+    def __init__(self, ch=(1, 32, 64, 128), groups=8, norm=None, down=None):
         super().__init__()
-        self.convs = nn.ModuleList(
-            [nn.Conv2d(ch[i], ch[i + 1], 3, padding=1) for i in range(3)])
-        self.bns = nn.ModuleList([nn.BatchNorm2d(c) for c in ch[1:]])
+        norm = norm or TRUNK_NORM
+        down = down or TRUNK_DOWN
+        stride1 = 2 if down == "stride" else 1
+        self.convs = nn.ModuleList([
+            nn.Conv2d(ch[0], ch[1], 3, stride=stride1, padding=1),
+            nn.Conv2d(ch[1], ch[2], 3, padding=1),
+            nn.Conv2d(ch[2], ch[3], 3, padding=1)])
+        mk = ((lambda c: nn.GroupNorm(groups, c)) if norm == "group"
+              else (lambda c: nn.BatchNorm2d(c)))
+        self.norms = nn.ModuleList([mk(c) for c in ch[1:]])
+        # A strided first conv has already halved both axes.
+        self.pool_after = (down != "stride", True, True)
         self.out = ch[-1]
 
     def forward(self, x):
-        for c, b in zip(self.convs, self.bns):
-            x = F.max_pool2d(F.relu(b(c(x))), 2)
+        for c, n, pool in zip(self.convs, self.norms, self.pool_after):
+            x = F.relu(n(c(x)))
+            if pool:
+                x = F.max_pool2d(x, 2)
         return x.mean(dim=3)                       # [B, C, T]
 
 
@@ -119,7 +147,12 @@ def run(kind, W, songs, epochs, seed, tr, va_index, aux=0.3, micro=None):
     caps that. Default keeps batch*W constant at the W=8 setting.
     """
     if micro is None:
-        micro = max(8, min(128, int(128 * 8 / W)))
+        # Default to NO chunking. Auto-shrinking with W was a trap: with
+        # BatchNorm it silently changes the computation, so two runs that
+        # differ only in window size also differed in how they normalise,
+        # and a 3-hour ablation ended up measuring the wrong variable.
+        # Pass micro explicitly when memory forces it, and say so in results.
+        micro = 128
     rng = np.random.default_rng(100 + seed)
     torch.manual_seed(100 + seed)
     model = Model(kind, W * FPB).to(DEV)
@@ -139,6 +172,8 @@ def run(kind, W, songs, epochs, seed, tr, va_index, aux=0.3, micro=None):
                     # Give h its own gradient, not only the 8-way signal.
                     loss = loss + aux * (F.nll_loss(lh, ys // 4) + F.nll_loss(lr, ys % 4))
                 (loss / chunks).backward()
+            if CLIP:
+                torch.nn.utils.clip_grad_norm_(model.parameters(), CLIP)
             opt.step(); nb += 1
             if nb >= 500:
                 break

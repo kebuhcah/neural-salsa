@@ -558,6 +558,60 @@ accumulation genuinely free, which large windows need.
 
 ---
 
+## 9. Trunk 2x2: I isolated the wrong variable
+
+After the "clean" sweep came back non-monotonic (W=24 at 0.581 against a
+previously stable 0.765), two trunk changes were suspect -- BatchNorm ->
+GroupNorm and pool-after -> stride-2 conv -- because they had been made in a
+single edit. The 2x2 at W=24, 3 epochs, 2 seeds:
+
+| | pool | stride |
+|---|---|---|
+| batch | 0.553 (sd 0.028) | 0.552 (sd 0.029) |
+| group | 0.599 (sd 0.065) | 0.515 (sd 0.032) |
+
+    stride vs pool, BatchNorm  -0.001   <- free
+    stride vs pool, GroupNorm  -0.083
+    group vs batch, pool       +0.046
+    group vs batch, stride     -0.037
+
+Neither change hurts alone; the combination is the worst cell. But pooled
+within-cell sd is 0.042, so a difference needs ~0.081 to clear 95% with two
+seeds, and the largest effect is 0.084. **The 2x2 is essentially
+inconclusive.**
+
+### The actual cause, which was not the trunk
+    orig trunk,   4 epochs, micro 128, 2 seeds   0.765
+    batch/pool,   4 epochs, micro  32, 1 seed    0.727
+    batch/pool,   3 epochs, micro  42, 2 seeds   0.553
+    group/stride, 4 epochs, micro  42, 2 seeds   0.581
+
+Trunk choice moves accuracy by <=0.08, mostly inside noise. **Budget and
+micro-batching moved it by ~0.2.** Three hours went into carefully isolating
+the small variable while the large one sat uncontrolled -- and the epoch cut
+was introduced in the same edit that set up the ablation, unremarked.
+
+The real finding is duller: **W=24 is badly undertrained at 3 epochs.** There
+was precedent -- W=16 looked like a regression until given more epochs, one
+window size earlier.
+
+### What changed as a result
+- Trunk defaults stay `batch` + `pool`, the only configuration with a
+  verified 0.765 and the tightest seed spread (0.016).
+- `stride` is free with BatchNorm, so it stays available purely as a memory
+  lever for long windows. That is the one solid result here.
+- GroupNorm dropped: it fixed nothing and doubled seed spread at `pool`.
+- **`micro` no longer auto-shrinks with W.** Defaulting it to a W-dependent
+  value meant runs differing only in window size also differed in how they
+  normalised. It now defaults to 128 and must be passed explicitly.
+
+### Standing rule for this codebase
+Vary one thing per run, and treat epochs and micro as part of the
+configuration, not as incidental knobs. Seed spread must be reported
+alongside any comparison: at two seeds nothing below ~0.08 is resolvable.
+
+---
+
 ## 9. What is in this repo
 
 Tracked (generic; reads only `data/features/*.npz`):
