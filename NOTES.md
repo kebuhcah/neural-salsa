@@ -13,15 +13,17 @@ one confident answer. Mean song-level accuracy 0.894 (batch-decoded) against a
 
 **The single most important thing to know.** Most of this session optimised
 *per-window accuracy*, which is the wrong metric. Section 10 explains why.
-Per-window numbers in sections 6-9 are real but measure a proxy; the context
-and architecture sweeps in particular have **not** been re-run under
-song-level decoding and their conclusions may not survive.
+Per-window numbers in sections 6-9 are real but measure a proxy. The context
+sweep has now been re-run at song level (section 13): gru W=24 decodes 0.923
+against 0.858 at W=8, a gain carried entirely by three songs. The
+architecture sweep has **not** been re-run.
 
-**The remaining problem is narrow.** Not "raise accuracy from 0.69" but "fix
-the 3 of 16 songs where the model is *confidently inverted*" -- where it makes
-the 1<->5 flip consistently enough that aggregation amplifies the error
-instead of cancelling it. Amor y Control goes from 0.408 per-window to
-**0.000** song-level for exactly this reason.
+**The remaining problem is narrower than it looked.** Of the 3 of 16 songs
+that failed song-level decoding, two (La Lucha, Ay, Candela) are annotated
+with genuine mid-song 4-beat phase shifts that no single-phase decode can
+represent -- the models are at ceiling on them. The one real model failure is
+Amor y Control, and it is **seed-dependent**: some trainings invert it
+confidently, others decode it perfectly (section 13).
 
 ### What is settled
 - Error structure: two thirds of all errors are the 1<->5 flip; every other
@@ -33,10 +35,13 @@ instead of cancelling it. Amor y Control goes from 0.408 per-window to
   the phase is a property of the *song*.
 
 ### What is open
-- Context length and architecture, re-measured at song level.
+- Architecture, re-measured at song level (`arch_compare.py` now reports it).
+- A decoder that allows +4 phase shifts (c -> c+5), which the annotations
+  actually contain; the existing Viterbi only allows resets to count 1.
 - The online filter gets 0.800 where batch gets 0.894 -- that gap is
   recoverable by better causal decoding.
-- **Amor y Control is unexplained** after four separate measures.
+- **Amor y Control** flips on some seeds and not others. Compare what the
+  inverting and non-inverting W=24 models rely on (band knockout, section 8).
 - Gradient clipping: never tested, and seed spread tracks sequence length.
 
 ### Traps already hit (do not repeat)
@@ -55,7 +60,7 @@ instead of cancelling it. Amor y Control goes from 0.408 per-window to
     .venv/bin/python context_sweep.py --help   # window-length sweep
     .venv/bin/python validate_halfsim.py       # out-of-sample predictor test
 
-See `LISTENING.md` for per-song difficulty with YouTube links, and section 13
+See `LISTENING.md` for per-song difficulty with YouTube links, and section 14
 for the repo layout and the npz data contract.
 
 ---
@@ -677,7 +682,8 @@ sits between raw (0.686) and batch (0.894).
 1. **Report batch-decoded song accuracy as the headline**, not per-window.
 2. Sections 6-9 optimised the proxy. W=24's advantage over W=8 was measured
    per-window and may shrink or vanish at song level -- re-run before
-   believing it.
+   believing it. (Re-run in section 13: it survives, on three songs. Section
+   13 also shows two of the three failures above are annotation shifts.)
 3. The margin between winner and runner-up is a free confidence signal, but it
    does **not** separate confidently-right from confidently-wrong: Lluvia
    (21.8%, correct) and Amor y Control (16.1%, inverted) look alike.
@@ -811,7 +817,79 @@ alongside any comparison: at two seeds nothing below ~0.08 is resolvable.
 
 ---
 
-## 13. What is in this repo
+## 13. Context length re-measured at song level
+
+`context_sweep.py --windows 8,16,24 --kind gru --epochs 4 --seeds 2
+--micro 128 --out data/context_song.json`. Same split, head, budget and micro
+as the section 9 run that crowned W=24, now also batch-decoding every song.
+
+| W | acc | h | song | songs >0.95 | flips | song, per seed |
+|---|---|---|---|---|---|---|
+| 8 | 0.673 | 0.731 | 0.858 | 12.5 | 1.0 | 0.827 / 0.890 |
+| 16 | 0.712 | 0.755 | 0.860 | 12.5 | 1.5 | 0.828 / 0.891 |
+| 24 | 0.779 | 0.802 | **0.923** | 13.5 | 0.5 | 0.891 / 0.954 |
+
+(songs >0.95 and flips are counts out of 16, averaged over the two seeds)
+
+**W=24 survives, but the evidence is three songs.** Song-level accuracy is
+effectively binary -- each song decodes to 1.00 or 0.00 on a given model --
+so the +0.064 is not a gradual improvement. It is these events, and nothing
+else:
+
+| song | W=8 s0/s1 | W=16 s0/s1 | W=24 s0/s1 |
+|---|---|---|---|
+| Amor y Control | 0 F / 0 F | 0 F / **1** | 0 F / **1** |
+| Lamento Boliviano | 0 / 1 | 1 / 1 | 1 / 1 |
+| Federico Boogaloo | 1 / 1 | 0 F / 0 F | 1 / 1 |
+
+(F = decoded to the 1<->5 inversion)
+
+Paired W=24 vs W=8: 3 songs up, 0 down, 13 unchanged; Wilcoxon p=0.066. The
+gain is identical on both seeds (+0.064), which is more convincing than the
+means, but W=16 is no better than W=8 and inverts Federico Boogaloo on both
+seeds, so the curve is not monotonic. Verdict: **W=24 is the right default,
+not a demonstrated lever.** Most of its per-window gain (+0.106) lands on
+songs that already decode perfectly at W=8, where it is invisible.
+
+What longer context does buy reliably is **decisiveness**: the winner's
+per-window log-score margin over the runner-up roughly doubles from W=8 to
+W=16/24 on nearly every song. (Margins count overlapping windows as
+independent evidence, so they are uncalibrated; compare them, do not read them
+as probabilities.)
+
+### Amor y Control is seed-dependent, not a fixed property of the song
+Seed 1 decodes it perfectly at W=16 and W=24; seed 0 inverts it at every W.
+Neither is a near-tie -- inverted runs lose by 0.7-1.8 nats per window,
+correct runs win by 0.9-1.4. Two trainings that differ only in initialisation
+reach *confidently opposite* answers. That looks like two competing cues in
+the audio, with initialisation deciding which the model latches onto -- which
+would also explain why four audio-only measures (section 11) failed to
+explain it: they look for one cue. Next: compare what the two seed-1 and
+seed-0 W=24 models attend to on this song (band knockout per section 8).
+
+### Two of the "three failures" in section 10 are annotation phase shifts
+La Lucha (0.74) and Ay, Candela (0.52) score *identically* at every W and
+seed. The annotations explain it: both contain genuine mid-song shifts of
+**exactly 4 beats** --
+
+    La Lucha      phase 0 for 252 beats, then phase 4 for 760
+    Ay, Candela   phase 0 for 52, phase 4 for 308, phase 0 for 352
+
+A single-phase batch decode cannot represent that, so every model sits at the
+ceiling for these songs and is effectively correct. Two consequences:
+
+1. The real song-level score is better than reported: only Amor y Control
+   (and the occasional seed-specific slip) is a model failure.
+2. `stage_b_decode.decode_song` models resets only as jumps to count 1. The
+   resets that actually occur here are **+4 shifts** -- a 4-beat phrase
+   inserted or dropped -- which is precisely the 1<->5 confusion. A decoder
+   that allows c -> (c+5) % 8 at low probability should recover these songs,
+   and must be scored carefully, since the same transition also lets the
+   model's own flips through.
+
+---
+
+## 14. What is in this repo
 
 Tracked (generic; reads only `data/features/*.npz`):
 
@@ -852,7 +930,7 @@ not tied to this dataset.
 
 ---
 
-## 14. Reference notes
+## 15. Reference notes
 
 ### Shift-tolerant loss (Beat This!, ISMIR 2024)
 Model runs at 50 fps (22.05 kHz, hop 441, 128 mels, 30 Hz–10 kHz). Targets are
