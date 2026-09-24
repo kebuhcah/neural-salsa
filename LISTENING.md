@@ -120,3 +120,40 @@ against this audio** -- and at least one was wrong, since trumpet fundamentals
 sit in the band originally labelled "conga, piano low". Trumpets are broadband
 besides, so no band isolates an instrument. Checking those labels by ear is
 most of the point of the tool.
+
+---
+
+## Second split: newly measured songs
+
+A second model was trained holding out 16 different songs, to test whether
+the halfsim predictor generalises. These flip rates are new.
+
+| q | acc | halfsim | artist | title | listen |
+|---|---|---|---|---|---|
+| 0.566 | 0.434 | 0.235 | Jimmy Bosch | Otra Oportunidad | [▶](https://youtube.com/watch?v=4C9h382PHH4) |
+| 0.486 | 0.483 | 0.443 | Marc Anthony | Volando Entre Tus Brazos | [▶](https://youtube.com/watch?v=H7t5-8OXBr8) |
+| 0.346 | 0.645 | 0.206 | Ciclon Cubano | Un Dia Yo | [▶](https://youtube.com/watch?v=cw_ms9xOmfo) |
+| 0.339 | 0.643 | 0.249 | Grupo Niche | Busco | [▶](https://youtube.com/watch?v=YcynnMwKDvA) |
+| 0.275 | 0.657 | 0.339 | Marc Anthony | Valio La Pena | [▶](https://youtube.com/watch?v=Ns9YYSqLxyI) |
+| 0.177 | 0.757 | 0.362 | George Lamond | Que Te Vas (remix) | [▶](https://youtube.com/watch?v=wdr64je-mmU) |
+| 0.157 | 0.597 | 0.312 | Orlando Pabellon | Ocairi | [▶](https://youtube.com/watch?v=Ipjd3qRn1bo) |
+| 0.145 | 0.749 | 0.089 | La Charanga Habanera | Lola Lola | [▶](https://youtube.com/watch?v=l4qOmBNCirU) |
+| 0.123 | 0.704 | 0.225 | Alexander Abreu & Havana D' Primera | Me Dicen Cuba | [▶](https://youtube.com/watch?v=se_5Vh4mB-A) |
+| 0.122 | 0.865 | 0.277 | Rino Vendemiati | No Me Celes | [▶](https://youtube.com/watch?v=F3mxMxmOulk) |
+| 0.107 | 0.887 | 0.183 | Frankie Negron | Mi Mulata | [▶](https://youtube.com/watch?v=rJo5LPVUAXY) |
+| 0.085 | 0.887 | 0.123 | Los Van Van | La Maquinera | [▶](https://youtube.com/watch?v=1cMzp31sy3c) |
+| 0.082 | 0.828 | 0.156 | Havana De Primera | Tres Días | [▶](https://youtube.com/watch?v=A69EvWPDjY0) |
+| 0.073 | 0.923 | 0.196 | Celia Cruz | Toro Mata | [▶](https://youtube.com/watch?v=ifnS2qI6Kag) |
+| 0.028 | 0.917 | 0.295 | Seo Fernandez | Remenea | [▶](https://youtube.com/watch?v=S_jlWQSnib0) |
+| 0.017 | 0.983 | 0.168 | Salsa D´Esquina | Me Siento Todo De Ti | [▶](https://youtube.com/watch?v=lVDsaM7G9ok) |
+
+Two worth your ears:
+
+- **Otra Oportunidad** (q=0.566) is the worst-performing song measured so far,
+  and nothing predicted it -- mid-range halfsim, no other flag.
+- **Volando Entre Tus Brazos** (q=0.486) was predicted hardest from audio
+  alone before any model saw it, and delivered. It is also one of the two
+  songs with a genuine slow intro found in the corpus audit.
+
+Note: this split used a smaller training batch to fit the machine, so these
+q values are not directly comparable to the first table's.

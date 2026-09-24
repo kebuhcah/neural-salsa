@@ -558,6 +558,79 @@ accumulation genuinely free, which large windows need.
 
 ---
 
+## 9. Predicting the 1<->5 flip from audio alone
+
+A listener's observations drove this: they found Amor y Control easy while the
+model failed on it worst, and consistently flipped 1 and 5 on Ay, Candela --
+which the model also flips. That suggested song difficulty is a property of
+the music, measurable without training anything.
+
+### The measure
+Align blocks to the 1, then compare the audio of **counts 1-4 against counts
+5-8** by cosine similarity on the beat-synchronous mel patches.
+
+    halfsim  = similarity(counts 1-4, counts 5-8)
+    cyclesim = similarity(this 8-count, the next)
+
+High halfsim means the two halves of the 8-count look alike, so the 1 and 5
+are hard to tell apart. That is the flip, stated directly in the audio.
+
+An earlier per-beat version (beat i vs beat i+4 and i+8) correlated -0.07 with
+the model's flip rate -- nothing. Comparing whole 4-beat **blocks** works
+because it spans beat boundaries (an anticipated bass note stays in the block
+it musically belongs to) and compares gestures rather than isolated beats.
+The block version was the listener's suggestion.
+
+### Out-of-sample validation
+In-sample on the original 16 held-out songs: r=+0.32. Since those are the same
+songs that produced the measure, a second split was trained -- 16 different
+songs, none previously evaluated, stratified across the halfsim range:
+
+    OUT-OF-SAMPLE  r=+0.44  p=0.091  95% CI [-0.08, +0.77]  n=16
+
+Same sign, larger magnitude. **r-squared = 0.19**, so the measure accounts for
+about a fifth of the variation in flip rate and four fifths is something else.
+p=0.091 does not clear the conventional 0.05 bar; this is a working hypothesis,
+not an established fact.
+
+### Where it works and where it does not
+The extremes behave. Volando Entre Tus Brazos, predicted hardest at
+halfsim 0.443 and never previously measured, came in at **q=0.486** -- the
+worst flip rate in that split, called in advance from audio alone. Lola Lola
+at the low end behaved too.
+
+The middle is noise:
+
+| song | halfsim | q |
+|---|---|---|
+| Me Siento Todo De Ti | 0.168 | 0.017 |
+| Otra Oportunidad | 0.235 | **0.566** |
+| Remenea | 0.295 | 0.028 |
+
+Otra Oportunidad is the worst song in the split and sits mid-range on the
+predictor; Remenea has high halfsim and is nearly perfect. Useful as a screen
+for the extremes, useless as a diagnosis.
+
+### Corpus-wide
+Computed over 93 songs (8 too short): min 0.081, median 0.226, max 0.458.
+The original validation split is representative of the corpus (t=-0.23,
+p=0.82), so results from it should generalise. As a sanity check, "Que Te Vas"
+and "Que Te Vas (remix)" score 0.367 and 0.362 -- the measure tracks the music.
+
+### What it does not explain
+**Amor y Control** remains unaccounted for after three separate measures. Its
+halfsim is 0.250, mid-pack. Its harmony has no 8-beat period. Its per-band
+8-beat structure is near zero everywhere. Yet it has the highest flip rate of
+any song measured (0.475) while a listener finds it easy. Whatever cue a human
+uses there is not any form of repetition these measures capture.
+
+Caveat on comparability: the validation run used micro=32 to fit the machine,
+so its absolute q values are not comparable to the micro=128 runs. The
+within-run correlation is unaffected, since every song was scored by the same
+model.
+
+---
+
 ## 9. Trunk 2x2: I isolated the wrong variable
 
 After the "clean" sweep came back non-monotonic (W=24 at 0.581 against a
