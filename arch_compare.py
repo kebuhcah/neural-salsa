@@ -137,6 +137,31 @@ class Model(nn.Module):
         return self.head(z), None, None
 
 
+def song_level(logp, beats, truth):
+    """Batch decoding: one phase for the whole song, chosen by every window.
+
+    Per-window accuracy is a proxy (NOTES section 10): phase advances
+    deterministically, so the song's labelling is fixed by one of 8
+    hypotheses. Scored against the actual beat index rather than list
+    position, because untrusted windows leave gaps in the index.
+
+    song   accuracy of the decoded labelling
+    flip   1 if the winner is the hypothesis four away -- the confident
+           1<->5 inversion that aggregation amplifies instead of cancelling
+    margin winning minus runner-up log-score per window; how decisive it was
+    """
+    scores = np.array([logp[np.arange(len(beats)), (h + beats) % 8].sum()
+                       for h in range(8)])
+    phi = int(scores.argmax())
+    pred = (phi + beats) % 8
+    # Truth is almost always (phi* + beat) % 8; take its mode as phi*.
+    phi_true = int(np.bincount((truth - beats) % 8, minlength=8).argmax())
+    top2 = np.sort(scores)[-2:]
+    return {"song": float((pred == truth).mean()),
+            "flip": int(phi == (phi_true + 4) % 8),
+            "margin": float((top2[1] - top2[0]) / len(beats))}
+
+
 def run(kind, W, songs, epochs, seed, tr, va_index, aux=0.3, micro=None):
     """micro: activation-memory cap via gradient accumulation.
 
@@ -181,17 +206,22 @@ def run(kind, W, songs, epochs, seed, tr, va_index, aux=0.3, micro=None):
     out = {}
     with torch.no_grad():
         for si, idx in va_index.items():
-            P, Y = [], []
+            L, Y = [], []
             r2 = np.random.default_rng(1)
             for X, y in batches(songs, idx, W, micro, r2, 0.0, 1.0, shuffle=False):
-                P.append(model(X)[0].argmax(1).cpu().numpy()); Y.append(y.cpu().numpy())
-            if not P:
+                # log_softmax is a no-op on the factorised head's output,
+                # which is already normalised log-probability.
+                L.append(F.log_softmax(model(X)[0], 1).cpu().numpy())
+                Y.append(y.cpu().numpy())
+            if not L:
                 continue
-            p, t = np.concatenate(P), np.concatenate(Y)
+            logp, t = np.concatenate(L), np.concatenate(Y)
+            p = logp.argmax(1)
             out[si] = {"acc": float((p == t).mean()),
                        "q": float((p == (t + 4) % 8).mean()),
                        "h": float((p // 4 == t // 4).mean()),
-                       "r": float((p % 4 == t % 4).mean())}
+                       "r": float((p % 4 == t % 4).mean()),
+                       **song_level(logp, idx[:len(t), 1], t)}
     n = sum(p.numel() for p in model.parameters())
     return out, n
 

@@ -23,6 +23,7 @@ ap.add_argument("--kind", default="gru")
 ap.add_argument("--epochs", type=int, default=4)
 ap.add_argument("--seeds", type=int, default=2)
 ap.add_argument("--micro", type=int, default=None)
+ap.add_argument("--out", default="data/context_sweep.json")
 a = ap.parse_args()
 
 songs = load_all()
@@ -30,8 +31,9 @@ perm = np.random.default_rng(0).permutation(len(songs))
 val_ids, tr_ids = perm[:16], perm[16:]
 print(f"head={a.kind}  {a.epochs} epochs  {a.seeds} seeds\n")
 print(f"{'W':>4} {'beats':>7} {'8-counts':>9} {'train win':>10} "
-      f"{'acc':>7} {'q':>7} {'h':>7} {'r':>7}")
-print("-" * 64)
+      f"{'acc':>7} {'q':>7} {'h':>7} {'r':>7} "
+      f"{'song':>7} {'exact':>6} {'flips':>6}  per-seed song")
+print("-" * 100)
 res = {}
 for W in [int(x) for x in a.windows.split(",")]:
     tr = make_index(songs, tr_ids, W)
@@ -43,8 +45,16 @@ for W in [int(x) for x in a.windows.split(",")]:
         per_seed.append(out)
     res[W] = per_seed
     M = lambda k: np.mean([[v[k] for v in o.values()] for o in per_seed])
+    # Songs per seed meeting a condition, averaged over seeds.
+    Cnt = lambda f: np.mean([sum(f(v) for v in o.values()) for o in per_seed])
     print(f"{W:4d} {W:7d} {W/8:9.1f} {len(tr):10d} "
-          f"{M('acc'):7.3f} {M('q'):7.3f} {M('h'):7.3f} {M('r'):7.3f}", flush=True)
-Path(ROOT / "data/context_sweep.json").write_text(json.dumps(
+          f"{M('acc'):7.3f} {M('q'):7.3f} {M('h'):7.3f} {M('r'):7.3f} "
+          f"{M('song'):7.3f} {Cnt(lambda v: v['song'] > 0.95):6.1f} "
+          f"{Cnt(lambda v: v['flip']):6.1f}  "
+          + " ".join(f"{np.mean([v['song'] for v in o.values()]):.3f}"
+                     for o in per_seed), flush=True)
+Path(ROOT / a.out).write_text(json.dumps(
     {str(k): v for k, v in res.items()}, indent=1))
 print("\nchance: acc 0.125, h 0.500, r 0.250")
+print("song: batch-decoded accuracy; exact: songs >0.95 (of 16); "
+      "flips: songs decoded to the 1<->5 inversion")
