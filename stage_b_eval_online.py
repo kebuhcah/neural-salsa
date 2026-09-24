@@ -39,7 +39,11 @@ def posteriors(model, song, W, bs=256):
     with torch.no_grad():
         for start in range(W - 1, nb, bs):
             idxs = range(start, min(start + bs, nb))
-            X = np.stack([f[(b - W + 1) * FPB:(b + 1) * FPB] for b in idxs])
+            # load_all() keeps features float16 to save memory; batches()
+            # casts on assignment but np.stack preserves the dtype, so cast
+            # explicitly or conv2d rejects Half input against float weights.
+            X = np.stack([f[(b - W + 1) * FPB:(b + 1) * FPB]
+                          for b in idxs]).astype(np.float32)
             out.append(F.softmax(
                 model(torch.from_numpy(X).unsqueeze(1).to(DEV)), 1).cpu().numpy())
     return np.concatenate(out)

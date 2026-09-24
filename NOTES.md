@@ -1,5 +1,66 @@
 # neural-salsa — research notes
 
+## START HERE: state of play
+
+**Goal.** Predict the salsa **1** and **5** counts from audio. Secondary goal:
+learn NN training and interpretability on a problem with real structure.
+
+**Current best result.** A model that is only 0.686 accurate *per window*
+decodes **12 of 16 held-out songs exactly right** at the song level, because
+phase advances deterministically and 900 weak per-beat votes aggregate into
+one confident answer. Mean song-level accuracy 0.894 (batch-decoded) against a
+0.125 chance baseline.
+
+**The single most important thing to know.** Most of this session optimised
+*per-window accuracy*, which is the wrong metric. Section 10 explains why.
+Per-window numbers in sections 6-9 are real but measure a proxy; the context
+and architecture sweeps in particular have **not** been re-run under
+song-level decoding and their conclusions may not survive.
+
+**The remaining problem is narrow.** Not "raise accuracy from 0.69" but "fix
+the 3 of 16 songs where the model is *confidently inverted*" -- where it makes
+the 1<->5 flip consistently enough that aggregation amplifies the error
+instead of cancelling it. Amor y Control goes from 0.408 per-window to
+**0.000** song-level for exactly this reason.
+
+### What is settled
+- Error structure: two thirds of all errors are the 1<->5 flip; every other
+  error type is *below* chance. Position-within-half is solved (r=0.90),
+  which-half is near coinflip (h=0.74).
+- Aggregation works: batch decoding recovers ~0.21 accuracy on average.
+- Data quality: 116 songs, 9.04h usable, essentially zero annotation errors.
+- The clave hypothesis is dead. The model leans on bass; which band carries
+  the phase is a property of the *song*.
+
+### What is open
+- Context length and architecture, re-measured at song level.
+- The online filter gets 0.800 where batch gets 0.894 -- that gap is
+  recoverable by better causal decoding.
+- **Amor y Control is unexplained** after four separate measures.
+- Gradient clipping: never tested, and seed spread tracks sequence length.
+
+### Traps already hit (do not repeat)
+- `micro` must be passed explicitly; auto-shrinking it with W silently changed
+  BatchNorm's behaviour and invalidated a cross-window comparison.
+- `load_all()` returns **float16**; cast before feeding a model.
+- Counts are 0-indexed in `build_features.py`, 1-indexed in
+  `stage_b_labels.py`. Reconcile before trusting any reset detection.
+- Two seeds resolve ~0.08 and nothing finer. Report seed spread always.
+- Vary one thing per run. Epochs and micro are part of the configuration.
+- Do not grep warnings out of training logs.
+
+### How to run
+    .venv/bin/python bridge_test.py            # song-level decoding, the headline
+    .venv/bin/python arch_compare.py --help    # architecture sweep
+    .venv/bin/python context_sweep.py --help   # window-length sweep
+    .venv/bin/python validate_halfsim.py       # out-of-sample predictor test
+
+See `LISTENING.md` for per-song difficulty with YouTube links, and section 13
+for the repo layout and the npz data contract.
+
+---
+
+
 Goal: predict the salsa **1** and **5** counts from audio (spectrogram in,
 timestamps out). Secondary goal: learn NN training and interpretability on a
 problem with real musical structure.
@@ -558,7 +619,72 @@ accumulation genuinely free, which large windows need.
 
 ---
 
-## 9. Predicting the 1<->5 flip from audio alone
+## 10. Per-window accuracy was the wrong metric
+
+`bridge_test.py`. Three readings of the same model posteriors:
+
+    raw       per-window argmax, independent -- what sections 6-9 reported
+    filtered  online forward filter, belief carried forward, causal
+    batch     one phase for the whole song (8-offset collapse), offline
+
+    mean: raw 0.686   filtered 0.800   batch 0.894
+    batch beats raw on 13/16 songs, mean gain +0.207
+
+**Batch decoding gets 12 of 16 songs to exactly 1.000**, including songs where
+per-window accuracy was below 0.40:
+
+| song | raw | batch | gain |
+|---|---|---|---|
+| Lluvia Con Nieve | 0.395 | **1.000** | +0.605 |
+| La Eternidad Del Amor | 0.397 | **1.000** | +0.603 |
+| Lamento Boliviano | 0.475 | **1.000** | +0.525 |
+
+### Why it works
+Phase advances deterministically, so one number determines the whole song's
+labelling, and each beat's prediction is compatible with exactly one of the 8
+hypotheses. Every beat casts one vote. **Errors disperse across the seven
+wrong hypotheses; correct answers concentrate on one.** Lluvia Con Nieve is
+wrong 60% of the time per beat, yet its true phase takes 243 votes against 109
+for the runner-up.
+
+### Why it fails on three songs
+When errors do NOT disperse, voting amplifies them. Amor y Control:
+
+    phase 3:  556 votes  <- WINNER (wrong)
+    phase 7:  399 votes  <- TRUE
+
+556 votes land on the hypothesis exactly 4 away from the truth. The model is
+right 399 times and *consistently wrong the same way* 556 times, so the
+plurality is wrong and the song decodes to **0.000**. Exactly what section 4
+predicted: aggregation amplifies whichever of p and q is larger, it does not
+average them.
+
+### Errors are bursty, not salt-and-pepper
+Median run lengths of consecutive correct / incorrect windows:
+
+| song | correct run | wrong run |
+|---|---|---|
+| Cómo Lo Hacen | 29.5 | 1.0 |
+| Sin Salsa No Hay Paraiso | 14.0 | 2.5 |
+| Amor y Control | 4.0 | **7.5** |
+
+Phase is established in stretches and lost in stretches. The model re-derives
+it from every window independently and carries nothing forward; a listener
+establishes it once and holds it. That asymmetry is why the filter (0.800)
+sits between raw (0.686) and batch (0.894).
+
+### Consequences
+1. **Report batch-decoded song accuracy as the headline**, not per-window.
+2. Sections 6-9 optimised the proxy. W=24's advantage over W=8 was measured
+   per-window and may shrink or vanish at song level -- re-run before
+   believing it.
+3. The margin between winner and runner-up is a free confidence signal, but it
+   does **not** separate confidently-right from confidently-wrong: Lluvia
+   (21.8%, correct) and Amor y Control (16.1%, inverted) look alike.
+
+---
+
+## 11. Predicting the 1<->5 flip from audio alone
 
 A listener's observations drove this: they found Amor y Control easy while the
 model failed on it worst, and consistently flipped 1 and 5 on Ay, Candela --
@@ -631,7 +757,7 @@ model.
 
 ---
 
-## 9. Trunk 2x2: I isolated the wrong variable
+## 12. Trunk 2x2: I isolated the wrong variable
 
 After the "clean" sweep came back non-monotonic (W=24 at 0.581 against a
 previously stable 0.765), two trunk changes were suspect -- BatchNorm ->
@@ -685,17 +811,30 @@ alongside any comparison: at two seeds nothing below ~0.08 is resolvable.
 
 ---
 
-## 9. What is in this repo
+## 13. What is in this repo
 
 Tracked (generic; reads only `data/features/*.npz`):
-`train_phase.py` model + training loop, `ablation.py` band ablation,
-`stage_b_eval_online.py` latency/calibration, `stage_b_decode.py` batch
-decoder, `stage_b_online.py` forward filter.
+
+| file | what it does |
+|---|---|
+| `train_phase.py` | model, training loop, `load_all`, `batches` |
+| `arch_compare.py` | trunk + head variants, the shared `run()` |
+| `context_sweep.py` | window-length sweep |
+| `trunk_ablation.py` | norm x downsample 2x2 |
+| `bridge_test.py` | **raw vs filtered vs batch decoding -- the headline** |
+| `validate_halfsim.py` | out-of-sample test of the audio-only predictor |
+| `stage_b_decode.py` | batch decoder (8-offset collapse, Viterbi) |
+| `stage_b_online.py` | online forward filter |
+| `stage_b_eval_online.py` | latency and calibration measurement |
+| `LISTENING.md` | per-song difficulty with YouTube links |
 
 Not tracked: the Visual Salsa ingestion layer, which imports a decoder for a
 proprietary format and handles subscription-licensed data
-(`fetch_grids.py`, `fetch_audio.py`, `build_features.py`, `stage_b_labels.py`,
-`spectro_explorer.py`, `visualsalsa_grid.py`, `data/songs/`, `data/audio/`).
+(`fetch_grids.py`, `fetch_audio.py`, `build_features.py`, `build_chroma.py`,
+`stage_b_labels.py`, `spectro_explorer.py`, `visualsalsa_grid.py`,
+`verify_alignment.py`, `NOTES-visualsalsa.md`, `data/songs/`, `data/audio/`).
+Those notes hold the grid format spec, the alignment audit and the corpus
+quality findings.
 
 ### The data contract
 Everything tracked here consumes one thing: `data/features/<id>.npz` with
@@ -713,7 +852,7 @@ not tied to this dataset.
 
 ---
 
-## 10. Reference notes
+## 14. Reference notes
 
 ### Shift-tolerant loss (Beat This!, ISMIR 2024)
 Model runs at 50 fps (22.05 kHz, hop 441, 128 mels, 30 Hz–10 kHz). Targets are
