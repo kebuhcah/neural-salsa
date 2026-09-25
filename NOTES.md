@@ -23,7 +23,9 @@ that failed song-level decoding, two (La Lucha, Ay, Candela) are annotated
 with genuine mid-song 4-beat phase shifts that no single-phase decode can
 represent -- the models are at ceiling on them. The one real model failure is
 Amor y Control, and it is **seed-dependent**: some trainings invert it
-confidently, others decode it perfectly (section 13).
+confidently, others decode it perfectly (section 13). Its cause is now
+located: the 2.5-6 kHz band argues for the inversion on this song only, and
+notching it out fixes every seed (section 13a).
 
 ### What is settled
 - Error structure: two thirds of all errors are the 1<->5 flip; every other
@@ -40,8 +42,11 @@ confidently, others decode it perfectly (section 13).
   actually contain; the existing Viterbi only allows resets to count 1.
 - The online filter gets 0.800 where batch gets 0.894 -- that gap is
   recoverable by better causal decoding.
-- **Amor y Control** flips on some seeds and not others. Compare what the
-  inverting and non-inverting W=24 models rely on (band knockout, section 8).
+- **Amor y Control**: localised (section 13a). Its 2.5-6 kHz band points four
+  beats off the annotation and every model hears it; notching the band fixes
+  all seeds. Open: *what* in that band (turned-around clave or bell?) -- a
+  listening check -- and whether per-band evidence combined at decode time
+  generalises on a fresh split.
 - Gradient clipping: never tested, and seed spread tracks sequence length.
 
 ### Traps already hit (do not repeat)
@@ -861,11 +866,74 @@ as probabilities.)
 Seed 1 decodes it perfectly at W=16 and W=24; seed 0 inverts it at every W.
 Neither is a near-tie -- inverted runs lose by 0.7-1.8 nats per window,
 correct runs win by 0.9-1.4. Two trainings that differ only in initialisation
-reach *confidently opposite* answers. That looks like two competing cues in
-the audio, with initialisation deciding which the model latches onto -- which
-would also explain why four audio-only measures (section 11) failed to
-explain it: they look for one cue. Next: compare what the two seed-1 and
-seed-0 W=24 models attend to on this song (band knockout per section 8).
+reach *confidently opposite* answers. Section 13a asks why.
+
+### 13a. What the inverting models rely on: the 2.5-6 kHz band
+
+`amor_compare.py --seeds 0,1,2,3`. Four W=24 gru seeds on the same split
+divide evenly: seeds 1 and 2 decode Amor y Control perfectly, seeds 0 and 3
+invert it (seed 0 reproduces its sweep result). All four decode every other
+validation song identically (0.951, the ceiling given the two shifted songs).
+e below is per-window evidence log p(true) - log p(true+4).
+
+**It is not two cues, it is one tug-of-war with a different balance.** The
+two groups' per-window e correlates +0.63 along the song. Both rise and fall
+together; the same stretches pull *every* model toward the inversion (beats
+0-31, 160-191, 384-415, 768-799, 864-927) and the same stretches pull every
+model toward the truth. The inverting group is shifted ~1.6 nats lower
+throughout (mean e -0.55 vs +1.11), which is enough to tip the song-level
+sum. So the "confidently opposite" answers above are not different
+strategies; they are the same strategy near a knife edge.
+
+**Band knockout: on this song, everything above 800 Hz argues for the
+inversion.** Shift in mean e when a band is blanked (+ = toward truth):
+
+| blanked band | s0 (inv) | s1 | s2 | s3 (inv) | other 15 songs |
+|---|---|---|---|---|---|
+| bass <250 | -0.89 | -0.62 | -0.60 | +0.14 | -1.14 |
+| low-mid 250-800 | +0.37 | +0.17 | -0.06 | +0.40 | -0.41 |
+| mid 800-2.5k | +0.73 | +1.54 | +0.86 | +1.62 | -0.37 |
+| high-mid 2.5-6k | **+1.44** | **+2.07** | **+1.43** | **+2.75** | -0.29 |
+| high >6k | +0.90 | +1.29 | +1.17 | +1.10 | -0.29 |
+
+On the other songs blanking any band hurts, as expected. On Amor y Control
+blanking any band above 800 Hz *helps*, for all four models, and high-mid
+helps most. Bass is the only band carrying the true phase here. The opposite
+sign against the control rules out knockout's usual confound (distribution
+shift), which would push both the same way.
+
+**Removing that band fixes the song, at no cost elsewhere.** Song-level,
+test-time input filtering on the same four models:
+
+| input | Amor y Control | other 15 songs |
+|---|---|---|
+| full | 2 of 4 inverted | 0.951 |
+| bass only <250 Hz | 4 of 4 correct | 0.68-0.75 |
+| below 800 Hz | 4 of 4 correct | 0.82-0.88 |
+| full minus 2.5-6 kHz | **4 of 4 correct** | **0.951** |
+
+Notching out 2.5-6 kHz (clave, campana, timbale rim) turns both inverting
+models correct and changes no other song's song-level result.
+
+**What this means.**
+- Amor y Control's "unexplained" flip has a location: something in 2.5-6 kHz
+  states the phase *four beats off* from the annotation, and every model
+  hears it. Clave and bell patterns repeat every 8 counts, so a pattern
+  played in the direction opposite to the corpus norm (3-2 vs 2-3, or a bell
+  pattern turned around) would be read as exactly a 4-beat shift. That is a
+  hypothesis, not a finding -- **listen to the high-mid band of this song**
+  (`spectro_explorer.py --song "Amor y Control"`) to check it.
+- This does not revive "the model uses clave" in general: on the other songs
+  high-mid is the *least* important band. It says high-mid is decisive when
+  it disagrees with the bass.
+- It is also consistent with the listener finding it easy: a dancer anchors
+  on the bass and ignores a turned-around bell.
+- **Do not adopt the notch as a fix.** It was chosen by looking at the one
+  song it fixes, which is a held-out song; the "free" result is 15 songs,
+  song-level only, and per-window accuracy on them was not checked. The
+  principled version is a model that can weigh bands per song, e.g. evidence
+  kept separate per band and combined at decode time, evaluated on a fresh
+  split.
 
 ### Two of the "three failures" in section 10 are annotation phase shifts
 La Lucha (0.74) and Ay, Candela (0.52) score *identically* at every W and

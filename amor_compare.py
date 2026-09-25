@@ -16,7 +16,7 @@ asks two questions of each on this song:
 Knockout is confounded by distribution shift (see ablation.py), so the other
 15 validation songs are run through the same knockouts as a control: a band
 that matters for Amor y Control specifically should move it more than it
-moves the rest.
+moves the rest. Finally, song-level decoding on low-passed and notched input.
 
     python amor_compare.py --seeds 0,1,2,3          # trains, then analyses
     python amor_compare.py --seeds 0,1,2,3 --reuse  # analyses saved models
@@ -156,6 +156,27 @@ for band, (lo, hi) in BANDS.items():
     res["knockout"][band] = {"target": row, "others": oth}
     print(f"{band:<18}" + "".join(f" {v:+7.2f}" for v in row)
           + f"   | {np.mean(oth):+.2f}", flush=True)
+
+# ---- does removing the misleading band fix the song? ----------------------
+# Knockout says the upper bands pull every model toward the inversion on this
+# song only. If so, a low-passed or notched input should decode it for every
+# seed; the other songs say what that costs where those bands carry the truth.
+keep = lambda hi: np.r_[np.ones(hi), np.zeros(128 - hi)].astype(np.float32)
+inputs = {"full": None, "bass only <250": keep(12), "below 800 Hz": keep(34),
+          "no high-mid": band_mask(*BANDS["high-mid 2.5-6k"], keep=False)}
+print(f"\nsong-level with a filtered input (F = inverted)")
+print(f"{'input':<16}" + "".join(f"   s{s}: Amor others" for s in seeds))
+res["filtered"] = {}
+for name, m in inputs.items():
+    row, res["filtered"][name] = f"{name:<16}", {}
+    for s in seeds:
+        sl = song_level(*logposts(models[s], vi[target], m))
+        o = np.mean([song_level(*logposts(models[s], vi[k], m))["song"]
+                     for k in vi if k != target])
+        res["filtered"][name][s] = {"target": sl["song"], "flip": sl["flip"],
+                                    "others": float(o)}
+        row += f"   {sl['song']:5.2f}{'F' if sl['flip'] else ' '} {o:6.3f}"
+    print(row, flush=True)
 
 Path(ROOT / "data/amor_compare.json").write_text(json.dumps(res, indent=1))
 print("\nmean e: Amor y Control's evidence for the true phase over the inverted "
