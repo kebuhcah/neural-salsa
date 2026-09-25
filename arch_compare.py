@@ -162,7 +162,8 @@ def song_level(logp, beats, truth):
             "margin": float((top2[1] - top2[0]) / len(beats))}
 
 
-def run(kind, W, songs, epochs, seed, tr, va_index, aux=0.3, micro=None):
+def run(kind, W, songs, epochs, seed, tr, va_index, aux=0.3, micro=None,
+        return_model=False):
     """micro: activation-memory cap via gradient accumulation.
 
     The first conv keeps full time x mel resolution at 32 channels, so one
@@ -223,7 +224,7 @@ def run(kind, W, songs, epochs, seed, tr, va_index, aux=0.3, micro=None):
                        "r": float((p % 4 == t % 4).mean()),
                        **song_level(logp, idx[:len(t), 1], t)}
     n = sum(p.numel() for p in model.parameters())
-    return out, n
+    return (out, n, model) if return_model else (out, n)
 
 
 def main():
