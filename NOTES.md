@@ -44,8 +44,8 @@ notching it out fixes every seed (section 13a).
   recoverable by better causal decoding.
 - **Amor y Control**: localised (section 13a). Its 2.5-6 kHz band points four
   beats off the annotation and every model hears it; notching the band fixes
-  all seeds. Open: *what* in that band (turned-around clave or bell?) -- a
-  listening check -- and whether per-band evidence combined at decode time
+  all seeds. Open: *what* in that band -- a listening check; one candidate is
+  this song putting the 1 on the minority side of the clave -- and whether per-band evidence combined at decode time
   generalises on a fresh split.
 - Gradient clipping: never tested, and seed spread tracks sequence length.
 
@@ -874,10 +874,13 @@ reach *confidently opposite* answers. Section 13a asks why.
 divide evenly: seeds 1 and 2 decode Amor y Control perfectly, seeds 0 and 3
 invert it (seed 0 reproduces its sweep result). All four decode every other
 validation song identically (0.951, the ceiling given the two shifted songs).
-e below is per-window evidence log p(true) - log p(true+4).
+e below is per-window evidence ln p(true) - ln p(true+4), in nats (natural-log
+units): e = 0 is a tie, e = +1.6 means the true phase is e^1.6 ~ 5x as likely
+as the inverted one, e = -1.6 the reverse.
 
-**It is not two cues, it is one tug-of-war with a different balance.** The
-two groups' per-window e correlates +0.63 along the song. Both rise and fall
+**It is not two cues, it is one tug-of-war with a different balance.**
+Averaging e over each group's two seeds gives two curves, one value per beat
+of the song (~920 beats); their Pearson correlation is +0.63. Both rise and fall
 together; the same stretches pull *every* model toward the inversion (beats
 0-31, 160-191, 384-415, 768-799, 864-927) and the same stretches pull every
 model toward the truth. The inverting group is shifted ~1.6 nats lower
@@ -918,10 +921,14 @@ models correct and changes no other song's song-level result.
 **What this means.**
 - Amor y Control's "unexplained" flip has a location: something in 2.5-6 kHz
   states the phase *four beats off* from the annotation, and every model
-  hears it. Clave and bell patterns repeat every 8 counts, so a pattern
-  played in the direction opposite to the corpus norm (3-2 vs 2-3, or a bell
-  pattern turned around) would be read as exactly a 4-beat shift. That is a
-  hypothesis, not a finding -- **listen to the high-mid band of this song**
+  hears it. One candidate: clave and bell patterns repeat every 8 counts, so
+  they fix phase only up to the 4-beat ambiguity -- and which side of the
+  clave the 1 falls on (2-side or 3-side) varies from song to song. If most
+  training songs put the 1 on one side, the model may have learned that
+  mapping, and a song that puts it on the other side would read exactly four
+  beats off. Clave direction alone does not locate the 1, so testing this
+  needs per-song annotation of which side carries it. A hypothesis, not a
+  finding -- **listen with high-mid muted and solo'd**
   (`spectro_explorer.py --song "Amor y Control"`) to check it.
 - This does not revive "the model uses clave" in general: on the other songs
   high-mid is the *least* important band. It says high-mid is decisive when
