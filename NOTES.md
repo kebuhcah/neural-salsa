@@ -1081,8 +1081,30 @@ removing them helps +6 to +9.4 for windows ending 1:24-1:29 and +5 to +8 for
 and 2:05-2:20. At 1:00-1:10 removing *any* of other, drums or vocals helps
 strongly: the models are lost there generally rather than misled by one part.
 
-Next: what is sung at ~1:16-1:29 and ~2:05-2:20 (coro, pregon, a break?); and
-what the percussion in "other" is at 3:20-3:47.
+**Third listen** (listener): 1:16-1:29 is lead then coro; 2:05-2:20 is all
+lead, slow, with notable pauses. The "other" percussion at 3:20-3:47 is
+probably a bell, not quite a cowbell, type unidentified. Lead vs coro does not
+separate helpful from misleading vocal stretches: both kinds contain both.
+
+**Accent profiles** (onset strength per sixteenth of the 8-count, per stem
+and stretch; "asym" 0 = identical every 4 beats, i.e. no 1-vs-5 information):
+
+| stem, stretch | asym | reading |
+|---|---|---|
+| other hi-mid, montuno 0:30-0:55 | 0.09 | near-symmetric: says little about 1 vs 5 |
+| other hi-mid, bell 3:20-3:47 | 0.18 | asymmetric; slightly heavier on 2 and 4 than 6 and 8 |
+| bass low, whole song | 0.09 | near-symmetric -- yet bass carries the truth |
+| vocals, misleading vs helpful | -- | r with helpful ~0 as-is and shifted 4 beats |
+
+Mostly negative. The montuno's symmetry fits its weak effect; the bell does
+carry 1-vs-5 timing information the model could misread. But the misleading
+vocals are not the helpful phrasing shifted by 4 beats, and the bass result
+shows onset timing misses what matters: bass carries the phase through
+*which notes* it plays, not when they start.
+
+Next: harmony per count position (`build_chroma.py` exists): does this
+song's harmonic rhythm put its changes on the 5 rather than the 1, in the
+misleading stretches?
 
 ### Two of the "three failures" in section 10 are annotation phase shifts
 La Lucha (0.74) and Ay, Candela (0.52) score *identically* at every W and
