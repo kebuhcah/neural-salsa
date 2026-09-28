@@ -1065,8 +1065,24 @@ So there is no single culprit: different stems mislead in different
 stretches. Per-stretch values are noisy (16 beats, 4 seeds, and removal
 effects are not additive) -- a listening map, not a verdict.
 
-Next: listen to the "other" stem at ~3:20-3:47 and ~4:05-4:30 (montuno, or the
-plucked string?), and to the vocal stretches that help vs hurt (lead or coro?).
+**Second listen** (listener):
+- "other" at 3:20-3:47: no piano, some percussion (unidentified). At
+  4:05-4:30: piano plus loud percussion. The two strongest "other" stretches
+  therefore share *percussion that Demucs routed to "other"*, while the one
+  piano-only stretch (the montuno, 0:30-0:55) had only a weak effect. With
+  the drums result, percussion is the common factor, not the montuno.
+- Vocals where removing them *hurts* (vocals support the true count):
+  0:44-0:54 is lead only; 1:32-1:48 and 2:32-2:47 start with coro then go to
+  lead. All include lead, so lead-vs-coro does not separate them cleanly yet.
+
+At 8-count resolution the stretches where the vocals *mislead* are sharp:
+removing them helps +6 to +9.4 for windows ending 1:24-1:29 and +5 to +8 for
+2:13-2:20, reversing within seconds either side -- audio roughly 1:16-1:29
+and 2:05-2:20. At 1:00-1:10 removing *any* of other, drums or vocals helps
+strongly: the models are lost there generally rather than misled by one part.
+
+Next: what is sung at ~1:16-1:29 and ~2:05-2:20 (coro, pregon, a break?); and
+what the percussion in "other" is at 3:20-3:47.
 
 ### Two of the "three failures" in section 10 are annotation phase shifts
 La Lucha (0.74) and Ay, Candela (0.52) score *identically* at every W and
