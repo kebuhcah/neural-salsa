@@ -45,8 +45,9 @@ notching it out fixes every seed (section 13a).
 - **Amor y Control**: localised (section 13a). Its 2.5-6 kHz band points four
   beats off the annotation and every model hears it; notching the band fixes
   all seeds. Open: *what* in that band. Not the clave (by ear it is only in
-  the intro, section 13b); something entering ~0:33 and playing throughout -- and whether per-band evidence combined at decode time
-  generalises on a fresh split.
+  the intro, which ends ~0:15, section 13b); something entering ~0:30 and
+  playing throughout -- and whether per-band evidence combined at decode
+  time generalises on a fresh split.
 - Gradient clipping: never tested, and seed spread tracks sequence length.
 
 ### Traps already hit (do not repeat)
@@ -944,31 +945,48 @@ models correct and changes no other song's song-level result.
   kept separate per band and combined at decode time, evaluated on a fresh
   split.
 
-### 13b. Listening check: not the clave; something that enters at ~0:33
+### 13b. Listening check: not the clave; something that enters at ~0:30
 
-**By ear** (listener): the clave is only really audible in the intro, it is
-spread over low-mid to high rather than concentrated in 2.5-6 kHz, and it is
-a 3-2 clave. So the clave cannot be what drives a high-mid effect that runs
-the length of the song.
+**By ear** (listener): the intro, and the clave with it, ends at about 0:15.
+The clave is spread over low-mid to high rather than concentrated in
+2.5-6 kHz, and it is a 3-2 clave. So the clave cannot be what drives a
+high-mid effect that runs the length of the song.
+
+**Reading times off the model.** A window is labelled by its last beat but
+sees the previous 24 beats -- 8.2 s at this tempo. A change in the audio at
+time T therefore ramps in over windows ending T to T+8. At 8-beat resolution
+(mean over four seeds; effect = shift in e when high-mid is blanked):
+
+| windows ending | audio covered | high-mid effect | reading |
+|---|---|---|---|
+| 0:09-0:17 | 0:01-0:17 | +0.1 to +0.8 | intro/clave: high-mid near neutral |
+| 0:17-0:30 | 0:09-0:30 | -1.3 to -1.7 | high-mid *supports* the true count |
+| 0:30-0:41 | 0:22-0:41 | +0.7 ramping to +2.2 | high-mid turns against it |
+
+So three phases, with boundaries inferred from the ramps (+-a few seconds):
+the intro to ~0:15, where high-mid barely matters; ~0:15-0:30, where
+something in high-mid points the right way; and from ~0:30, where something
+in high-mid points four beats off for most of the rest of the song. An
+earlier version of this section called 0:17-0:32 "the intro" and put the
+switch at 0:33; that was window-end time misread as audio time.
 
 **By model** (`amor_when.py`): mean e over all four seeds per 16-beat stretch,
-and its shift when high-mid is blanked. Selected rows:
+and its shift when high-mid is blanked. Selected rows (window-end times):
 
 | time | e full | high-mid muted | note |
 |---|---|---|---|
-| 0:17-0:22 | +2.45 | -0.97 | intro: high-mid *helps* the truth |
-| 0:22-0:27 | +1.69 | -1.61 | intro |
+| 0:17-0:22 | +2.45 | -0.97 | post-intro: high-mid *helps* the truth |
+| 0:22-0:27 | +1.69 | -1.61 | post-intro |
 | 0:33-0:38 | +2.10 | +1.44 | from here on, muting helps almost everywhere |
 | 1:00-1:05 | -3.12 | +2.80 | inverted |
 | 2:15-2:20 | -5.37 | +3.63 | most inverted stretch |
 | 4:20-4:30 | -4.5 | +1.6 to +2.4 | inverted |
 | 4:57-5:09 | -3.1 to -3.8 | +2.3 to +3.2 | inverted |
 
-The split is sharp at about 0:33. In the intro -- where the clave is --
-high-mid argues *for* the true phase. After it, blanking high-mid pushes
-toward the truth in nearly every 16-beat stretch, by +1.5 to +4, including
-stretches that decode correctly. That points to **something in 2.5-6 kHz that
-enters around 0:33 and plays steadily through the body of the song**, stating
+From ~0:30 on, blanking high-mid pushes toward the truth in nearly every
+16-beat stretch, by +1.5 to +4, including stretches that decode correctly.
+That points to **something in 2.5-6 kHz that enters around 0:30 and plays
+steadily through the body of the song**, stating
 the phase four beats off (a bell, cascara, guiro or maracas pattern are the
 obvious candidates; not yet identified). Mid (800-2.5k) also contributes in
 several of the worst stretches, so it is not high-mid alone.
@@ -977,8 +995,10 @@ The 3-2 observation cannot be used yet: it matters only relative to which
 side of the clave carries the 1 in this song and in the training corpus,
 which is not annotated.
 
-Next: listen from 0:33 with the explorer, soloing high-mid and then muting it,
-around 1:00-1:10 and 2:10-2:20, and name what enters.
+Next: in the explorer, solo high-mid across 0:15-0:40 and name what changes
+around 0:30 (and what plays in 0:15-0:30 that points the right way). Times in
+the tables are window-end times; the audio responsible starts up to 8 s
+earlier.
 
 ### Two of the "three failures" in section 10 are annotation phase shifts
 La Lucha (0.74) and Ay, Candela (0.52) score *identically* at every W and
