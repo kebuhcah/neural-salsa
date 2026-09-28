@@ -1000,6 +1000,48 @@ around 0:30 (and what plays in 0:15-0:30 that points the right way). Times in
 the tables are window-end times; the audio responsible starts up to 8 s
 earlier.
 
+### 13c. Stem removal: not the vocals; drums and "other" carry the flip
+
+Hypothesis (listener): the vocals, which enter at ~0:20. Test: separate the
+song with Demucs (htdemucs: drums, bass, other, vocals), rebuild the model's
+features from the mix minus one stem with the exact `build_features`
+pipeline, and re-run the four W=24 models. `stem_ablation.py` (untracked:
+imports the grid decoder and reads licensed audio; stems cached in
+`data/explorer/stems/`).
+
+Checks: rebuilding the original from audio reproduces the stored features
+bit-for-bit; the four stems summed back reproduce the original outcome
+(mean e +0.32 vs +0.28, same seeds inverted).
+
+| input | s0 | s1 | s2 | s3 | mean e |
+|---|---|---|---|---|---|
+| original | flipped | ok | ok | flipped | +0.28 |
+| without vocals | ok (+0.30) | ok | ok | ok (+0.02) | +0.28 |
+| vocals only | wrong, not flipped | ok | ok | ok | +0.86 |
+| without drums | ok | ok | ok | ok | **+2.28** |
+| without other | ok | ok | ok | ok | **+2.29** |
+| without bass | flipped | flipped | ok | flipped | -1.13 |
+
+- **Not the vocals.** Alone, the vocals lean toward the true count (+0.86).
+  Removing them squashes every model toward zero -- the correct pair loses
+  confidence, the inverting pair creeps past zero (seed 3 at +0.02) -- which
+  tips the song-level outcome without the vocals being the misleading cue.
+- **Drums and "other" each carry it.** Removing either fixes all four seeds
+  by about +2 nats per beat. Demucs is trained mostly on pop/rock, so salsa
+  percussion (bell, guiro, timbales, congas) may be split between these two
+  stems; which instrument it is still needs an ear.
+- **Bass carries the truth.** Removing it inverts three of four seeds,
+  matching the band knockout -- and showing that removing a stem does not
+  help indiscriminately.
+
+Caveats: one song; stem removal is a large distribution shift, controlled
+here only by the vocals and bass rows moving the other way. The obvious
+control -- the same removals on songs the models already get right -- has
+not been run.
+
+Next: listen to `data/explorer/stems/amor_drums.wav` and `amor_other.wav`
+from ~0:15 to ~0:40 for what enters around 0:30 (13b).
+
 ### Two of the "three failures" in section 10 are annotation phase shifts
 La Lucha (0.74) and Ay, Candela (0.52) score *identically* at every W and
 seed. The annotations explain it: both contain genuine mid-song shifts of
