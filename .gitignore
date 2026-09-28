@@ -37,3 +37,4 @@ build_chroma.py
 data/chroma/
 data/amor_w*.pt
 stem_ablation.py
+stem_when.py

@@ -1039,8 +1039,34 @@ here only by the vocals and bass rows moving the other way. The obvious
 control -- the same removals on songs the models already get right -- has
 not been run.
 
-Next: listen to `data/explorer/stems/amor_drums.wav` and `amor_other.wav`
-from ~0:15 to ~0:40 for what enters around 0:30 (13b).
+**By ear** (listener): from ~0:30 the "other" stem is mostly piano montuno
+for a long stretch; later there are traces of a cowbell and a plucked string
+instrument.
+
+**Along the song** (`stem_when.py`, untracked): change in 4-seed mean e per
+16-beat stretch when each stem is removed. Window-end times; the audio
+responsible starts up to 8 s earlier.
+
+- Up to ~0:27, removing "other" or drums *hurts* (-1.5 to -4.7): both point
+  toward the true count at the start. At ~0:30, when the montuno enters, the
+  "other" effect goes to roughly neutral (+0.4 to +1.4) -- a change, but the
+  montuno does not strongly mislead in 0:30-0:55, and that stretch decodes
+  correctly anyway.
+- Strongest "other" effects are **late**: 3:26-3:47, 4:09-4:30, 4:51-5:09
+  (+5 to +9), plus 1:00-1:10. That is where the plucked string and cowbell
+  were heard, so they may matter more than the montuno.
+- Strongest drums effects: 0:54-1:10, 3:53-4:03, 2:10-2:26 (+4 to +8).
+- Vocals cut both ways: removing them helps at 1:21-1:26 and 2:10-2:20 (+5
+  to +6.6) and *hurts* at 0:44-0:54, 1:32-1:48, 2:32-2:47 (-3 to -5.7) --
+  possibly lead vs coro, unverified. The most-flipped stretch (~2:15) looks
+  driven by vocals and drums; "other" barely moves it.
+
+So there is no single culprit: different stems mislead in different
+stretches. Per-stretch values are noisy (16 beats, 4 seeds, and removal
+effects are not additive) -- a listening map, not a verdict.
+
+Next: listen to the "other" stem at ~3:20-3:47 and ~4:05-4:30 (montuno, or the
+plucked string?), and to the vocal stretches that help vs hurt (lead or coro?).
 
 ### Two of the "three failures" in section 10 are annotation phase shifts
 La Lucha (0.74) and Ay, Candela (0.52) score *identically* at every W and
