@@ -880,7 +880,8 @@ as the inverted one, e = -1.6 the reverse.
 
 **It is not two cues, it is one tug-of-war with a different balance.**
 Averaging e over each group's two seeds gives two curves, one value per beat
-of the song (~920 beats); their Pearson correlation is +0.63. Both rise and fall
+of the song (896 scored beats); their Pearson correlation is +0.63. The
+inverting curve is lower at 73% of beats, by 1.65 nats on average. Both rise and fall
 together; the same stretches pull *every* model toward the inversion (beats
 0-31, 160-191, 384-415, 768-799, 864-927) and the same stretches pull every
 model toward the truth. The inverting group is shifted ~1.6 nats lower
