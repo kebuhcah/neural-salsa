@@ -1102,9 +1102,48 @@ vocals are not the helpful phrasing shifted by 4 beats, and the bass result
 shows onset timing misses what matters: bass carries the phase through
 *which notes* it plays, not when they start.
 
-Next: harmony per count position (`build_chroma.py` exists): does this
-song's harmonic rhythm put its changes on the 5 rather than the 1, in the
-misleading stretches?
+### 13d. Harmony: repeats every 4 beats; only "other" has 8-count structure
+
+Chroma from `build_chroma.chroma_of` (n_fft 8192, harmonic mask) on the mix
+and on the bass and "other" stems (`amor_harmony.py`,
+`amor_harmony_period.py`; untracked, caches in `data/explorer/stems/`).
+
+**Chord-change timing** (change strength around 8&-1e vs 4&-5e): the mix
+changes a little more around the 1 (0.212 vs 0.160; 61% of cycles), and that
+cue tracks the models weakly (r = +0.30 over overlapping windows). The stems
+alone do not (bass +0.09, other +0.01). The bass changes pitch mostly around
+counts 2-3 and 6-7 and barely on 1 or 5.
+
+**Periodicity.** Raw similarity at 4 vs 8 beats apart is biased -- any drifting
+recording is more alike at shorter lags -- so each lag is compared with its
+neighbours: peak(L) = sim(L) - mean(sim(L-1), sim(L+1)), x1000:
+
+| stem | peak at 4 beats | peak at 8 beats |
+|---|---|---|
+| bass | **+51** (every stretch +41..+67) | **-18** (no stretch above -2) |
+| mix | +12 | +1 |
+| other | +25 | **+15**; +31 at 3:18-3:50, +27 at 3:50-5:10 |
+
+- **The harmony repeats every 4 beats.** Bass and mix have a clear 4-beat
+  period and no 8-beat one, in every stretch: the chords of counts 1-4 are
+  those of 5-8. So "the harmony changes on the 5 instead of the 1" cannot be
+  the mechanism -- there is no 8-count harmonic asymmetry to get backwards.
+  Consistent with section 11's "no 8-beat harmonic period".
+- **Only "other" (piano and the bell) has 8-count structure**, and it is
+  strongest at 3:18-5:10 -- exactly where removing "other" helped most (+5
+  to +9). 3:20-3:47 is the stretch heard as bell without piano; a bell is
+  pitched, so its pattern shows in chroma. Anything that makes a model prefer
+  the 5 over the 1 must differ between the halves; in "other", that material
+  is concentrated in the misleading stretches. The best evidence so far for
+  the bell.
+- Open puzzle: the bass carries the true phase (13c) yet repeats every 4
+  beats harmonically. Whatever it contributes to 1-vs-5 is not in its pitch
+  content at beat resolution -- perhaps in how it interacts with the other
+  parts, which a stem-at-a-time test cannot separate.
+- The listener's earlier report that the piano progression tells them the 1
+  does not contradict this, since the piano part is what carries 8-count
+  structure, but the chords themselves repeat every 4 beats; what in the
+  piano marks the 1 is not identified.
 
 ### Two of the "three failures" in section 10 are annotation phase shifts
 La Lucha (0.74) and Ay, Candela (0.52) score *identically* at every W and
