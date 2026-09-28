@@ -44,8 +44,8 @@ notching it out fixes every seed (section 13a).
   recoverable by better causal decoding.
 - **Amor y Control**: localised (section 13a). Its 2.5-6 kHz band points four
   beats off the annotation and every model hears it; notching the band fixes
-  all seeds. Open: *what* in that band -- a listening check; one candidate is
-  this song putting the 1 on the minority side of the clave -- and whether per-band evidence combined at decode time
+  all seeds. Open: *what* in that band. Not the clave (by ear it is only in
+  the intro, section 13b); something entering ~0:33 and playing throughout -- and whether per-band evidence combined at decode time
   generalises on a fresh split.
 - Gradient clipping: never tested, and seed spread tracks sequence length.
 
@@ -921,7 +921,8 @@ models correct and changes no other song's song-level result.
 **What this means.**
 - Amor y Control's "unexplained" flip has a location: something in 2.5-6 kHz
   states the phase *four beats off* from the annotation, and every model
-  hears it. One candidate: clave and bell patterns repeat every 8 counts, so
+  hears it. (The clave candidate below is ruled out by ear -- see 13b.)
+  One candidate: clave and bell patterns repeat every 8 counts, so
   they fix phase only up to the 4-beat ambiguity -- and which side of the
   clave the 1 falls on (2-side or 3-side) varies from song to song. If most
   training songs put the 1 on one side, the model may have learned that
@@ -941,6 +942,42 @@ models correct and changes no other song's song-level result.
   principled version is a model that can weigh bands per song, e.g. evidence
   kept separate per band and combined at decode time, evaluated on a fresh
   split.
+
+### 13b. Listening check: not the clave; something that enters at ~0:33
+
+**By ear** (listener): the clave is only really audible in the intro, it is
+spread over low-mid to high rather than concentrated in 2.5-6 kHz, and it is
+a 3-2 clave. So the clave cannot be what drives a high-mid effect that runs
+the length of the song.
+
+**By model** (`amor_when.py`): mean e over all four seeds per 16-beat stretch,
+and its shift when high-mid is blanked. Selected rows:
+
+| time | e full | high-mid muted | note |
+|---|---|---|---|
+| 0:17-0:22 | +2.45 | -0.97 | intro: high-mid *helps* the truth |
+| 0:22-0:27 | +1.69 | -1.61 | intro |
+| 0:33-0:38 | +2.10 | +1.44 | from here on, muting helps almost everywhere |
+| 1:00-1:05 | -3.12 | +2.80 | inverted |
+| 2:15-2:20 | -5.37 | +3.63 | most inverted stretch |
+| 4:20-4:30 | -4.5 | +1.6 to +2.4 | inverted |
+| 4:57-5:09 | -3.1 to -3.8 | +2.3 to +3.2 | inverted |
+
+The split is sharp at about 0:33. In the intro -- where the clave is --
+high-mid argues *for* the true phase. After it, blanking high-mid pushes
+toward the truth in nearly every 16-beat stretch, by +1.5 to +4, including
+stretches that decode correctly. That points to **something in 2.5-6 kHz that
+enters around 0:33 and plays steadily through the body of the song**, stating
+the phase four beats off (a bell, cascara, guiro or maracas pattern are the
+obvious candidates; not yet identified). Mid (800-2.5k) also contributes in
+several of the worst stretches, so it is not high-mid alone.
+
+The 3-2 observation cannot be used yet: it matters only relative to which
+side of the clave carries the 1 in this song and in the training corpus,
+which is not annotated.
+
+Next: listen from 0:33 with the explorer, soloing high-mid and then muting it,
+around 1:00-1:10 and 2:10-2:20, and name what enters.
 
 ### Two of the "three failures" in section 10 are annotation phase shifts
 La Lucha (0.74) and Ay, Candela (0.52) score *identically* at every W and
