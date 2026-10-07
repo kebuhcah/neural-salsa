@@ -15,9 +15,22 @@ different way of attacking h.
   halves    encode the two halves of the window separately and compare them,
             since telling half 1 from half 2 is inherently a comparison
 
-Shared conv trunk throughout, so only the head differs. Same fixed val split
-for every variant and seed, and per-song accuracy recorded, because song
-difficulty (sd ~0.19) dwarfs the effects being measured.
+Those share one conv trunk, so only the head differs. Two later variants
+change the body, aimed at what the Amor y Control investigation found
+(NOTES 13):
+
+  bands     one small trunk + GRU per frequency band, each predicting alone,
+            combined by a learned per-window gate (readable per song)
+  beatseq   per-beat encoder, then a transformer across beats; memory per
+            beat, so long windows are cheap
+
+Same fixed val split for every variant and seed, and per-song results
+recorded, because song difficulty dwarfs the effects being measured. The
+headline is song level (NOTES 10): batch-decoded accuracy, flips, and mean e,
+the continuous evidence for the truth over the 1<->5 flip.
+
+    python arch_compare.py --window 24 --epochs 4 --kinds bands,beatseq,beatseq@48
+    python arch_compare.py --window 24 --kinds gru-saved     # re-score amor_compare models
 """
 import argparse
 import json
@@ -137,6 +150,94 @@ class Model(nn.Module):
         return self.head(z), None, None
 
 
+# Mel-bin ranges of the five ablation bands (ablation.BANDS), inclusive:
+# bass, low-mid, mid, high-mid, high. Duplicated rather than imported because
+# ablation.py imports train_phase's Net and would pull it in here.
+BAND_BINS = [(0, 11), (12, 33), (34, 69), (70, 105), (106, 127)]
+
+
+class Bands(nn.Module):
+    """Per-band experts, combined by a learned gate.
+
+    Each band gets its own small trunk and GRU and predicts the count alone.
+    The combined prediction is sum_b g_b * log p_b, renormalised -- a weighted
+    product of experts -- where the gate g (one weight per band, per window,
+    mean 1) is computed from all the bands' embeddings. On Amor y Control the
+    high-mid band argues for the 1<->5 flip while the bass carries the truth
+    (NOTES 13a/13c); a single trunk can only average them, this can learn to
+    trust the bass. Each expert also gets its own loss so it stays a usable
+    predictor alone, and the gate weights are readable per song.
+    """
+
+    def __init__(self, ch=(1, 16, 32, 64)):
+        super().__init__()
+        nb, c = len(BAND_BINS), ch[-1]
+        self.trunks = nn.ModuleList([Trunk(ch=ch) for _ in range(nb)])
+        self.rnns = nn.ModuleList([nn.GRU(c, c, batch_first=True, bidirectional=True)
+                                   for _ in range(nb)])
+        self.heads = nn.ModuleList([nn.Linear(2 * c, 8) for _ in range(nb)])
+        self.gate = nn.Sequential(nn.Linear(2 * c * nb, 64), nn.ReLU(), nn.Linear(64, nb))
+        self.drop = nn.Dropout(0.3)
+        self.experts = None        # per-band log-probs from the last forward, for aux loss
+        self.last_gate = None      # [B, nb] gate weights from the last forward
+
+    def forward(self, x):
+        zs, lps = [], []
+        for (lo, hi), trunk, rnn, head in zip(BAND_BINS, self.trunks, self.rnns, self.heads):
+            o, _ = rnn(trunk(x[..., lo:hi + 1]).transpose(1, 2))
+            z = self.drop(o[:, -1])
+            zs.append(z)
+            lps.append(F.log_softmax(head(z), -1))
+        g = F.softmax(self.gate(torch.cat(zs, -1)), -1) * len(BAND_BINS)
+        self.experts, self.last_gate = lps, g.detach()
+        mixed = (g[..., None] * torch.stack(lps, 1)).sum(1)
+        return F.log_softmax(mixed, -1), None, None
+
+
+class BeatSeq(nn.Module):
+    """Per-beat encoder, then a transformer across beats.
+
+    The shared trunk keeps full frame resolution across the whole window, so
+    its memory grows with W*16 frames and W>24 needed micro-batching (NOTES
+    9). Here each beat's 16 frames are encoded on their own -- keeping two
+    sub-beat time steps, so syncopation survives -- and only the W beat
+    vectors meet, in a small transformer. Memory is per beat, so 48-64 beat
+    windows are affordable. GroupNorm throughout, so micro-batching would not
+    change the computation either.
+    """
+
+    def __init__(self, W, d=128, layers=2, heads=4):
+        super().__init__()
+
+        def blk(i, o):
+            return [nn.Conv2d(i, o, 3, stride=2, padding=1), nn.GroupNorm(4, o), nn.ReLU()]
+
+        self.W = W
+        self.enc = nn.Sequential(*blk(1, 16), *blk(16, 32), *blk(32, 64))   # [16,128] -> [2,16]
+        self.proj = nn.Linear(64 * 2, d)
+        self.pos = nn.Parameter(torch.randn(W, d) * 0.02)
+        layer = nn.TransformerEncoderLayer(d, heads, 4 * d, dropout=0.1,
+                                           batch_first=True, norm_first=True)
+        self.tf = nn.TransformerEncoder(layer, layers, enable_nested_tensor=False)
+        self.drop = nn.Dropout(0.3)
+        self.head = nn.Linear(d, 8)
+
+    def forward(self, x):
+        B = x.shape[0]
+        beats = x.reshape(B * self.W, 1, FPB, x.shape[-1])       # one image per beat
+        z = self.enc(beats).mean(3).flatten(1)                  # [B*W, 128]
+        z = self.tf(self.proj(z).reshape(B, self.W, -1) + self.pos)
+        return self.head(self.drop(z[:, -1])), None, None       # target is the last beat
+
+
+def make_model(kind, W):
+    if kind == "bands":
+        return Bands()
+    if kind == "beatseq":
+        return BeatSeq(W)
+    return Model(kind, W * FPB)
+
+
 def song_level(logp, beats, truth):
     """Batch decoding: one phase for the whole song, chosen by every window.
 
@@ -149,9 +250,12 @@ def song_level(logp, beats, truth):
     flip   1 if the winner is the hypothesis four away -- the confident
            1<->5 inversion that aggregation amplifies instead of cancelling
     margin winning minus runner-up log-score per window; how decisive it was
+    e      mean ln p(true) - ln p(true+4): evidence for the truth over the
+           1<->5 flip, in nats. Continuous where `song` is nearly binary, so
+           it separates models that decode the same songs (NOTES 13a)
     """
-    scores = np.array([logp[np.arange(len(beats)), (h + beats) % 8].sum()
-                       for h in range(8)])
+    j = np.arange(len(beats))
+    scores = np.array([logp[j, (h + beats) % 8].sum() for h in range(8)])
     phi = int(scores.argmax())
     pred = (phi + beats) % 8
     # Truth is almost always (phi* + beat) % 8; take its mode as phi*.
@@ -159,7 +263,8 @@ def song_level(logp, beats, truth):
     top2 = np.sort(scores)[-2:]
     return {"song": float((pred == truth).mean()),
             "flip": int(phi == (phi_true + 4) % 8),
-            "margin": float((top2[1] - top2[0]) / len(beats))}
+            "margin": float((top2[1] - top2[0]) / len(beats)),
+            "e": float((logp[j, truth] - logp[j, (truth + 4) % 8]).mean())}
 
 
 def run(kind, W, songs, epochs, seed, tr, va_index, aux=0.3, micro=None,
@@ -181,7 +286,7 @@ def run(kind, W, songs, epochs, seed, tr, va_index, aux=0.3, micro=None,
         micro = 128
     rng = np.random.default_rng(100 + seed)
     torch.manual_seed(100 + seed)
-    model = Model(kind, W * FPB).to(DEV)
+    model = make_model(kind, W).to(DEV)
     opt = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
     for _ in range(epochs):
         model.train(); nb = 0
@@ -197,23 +302,35 @@ def run(kind, W, songs, epochs, seed, tr, va_index, aux=0.3, micro=None,
                 if lh is not None and aux:
                     # Give h its own gradient, not only the 8-way signal.
                     loss = loss + aux * (F.nll_loss(lh, ys // 4) + F.nll_loss(lr, ys % 4))
+                if getattr(model, "experts", None) is not None and aux:
+                    # Each band expert also predicts alone, so it stays usable.
+                    loss = loss + aux * sum(F.nll_loss(e, ys) for e in model.experts) / len(model.experts)
                 (loss / chunks).backward()
             if CLIP:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), CLIP)
             opt.step(); nb += 1
             if nb >= 500:
                 break
+    out = evaluate(model, songs, W, va_index, micro)
+    n = sum(p.numel() for p in model.parameters())
+    return (out, n, model) if return_model else (out, n)
+
+
+def evaluate(model, songs, W, va_index, bs=128):
+    """Per-song window and song-level metrics; band gate weights if present."""
     model.eval()
     out = {}
     with torch.no_grad():
         for si, idx in va_index.items():
-            L, Y = [], []
+            L, Y, G = [], [], []
             r2 = np.random.default_rng(1)
-            for X, y in batches(songs, idx, W, micro, r2, 0.0, 1.0, shuffle=False):
-                # log_softmax is a no-op on the factorised head's output,
-                # which is already normalised log-probability.
+            for X, y in batches(songs, idx, W, bs, r2, 0.0, 1.0, shuffle=False):
+                # log_softmax is a no-op on the factorised and band heads'
+                # output, which is already normalised log-probability.
                 L.append(F.log_softmax(model(X)[0], 1).cpu().numpy())
                 Y.append(y.cpu().numpy())
+                if getattr(model, "last_gate", None) is not None:
+                    G.append(model.last_gate.cpu().numpy())
             if not L:
                 continue
             logp, t = np.concatenate(L), np.concatenate(Y)
@@ -223,8 +340,9 @@ def run(kind, W, songs, epochs, seed, tr, va_index, aux=0.3, micro=None,
                        "h": float((p // 4 == t // 4).mean()),
                        "r": float((p % 4 == t % 4).mean()),
                        **song_level(logp, idx[:len(t), 1], t)}
-    n = sum(p.numel() for p in model.parameters())
-    return (out, n, model) if return_model else (out, n)
+            if G:
+                out[si]["gate"] = np.concatenate(G).mean(0).round(3).tolist()
+    return out
 
 
 def main():
@@ -232,32 +350,52 @@ def main():
     ap.add_argument("--window", type=int, default=8)
     ap.add_argument("--epochs", type=int, default=3)
     ap.add_argument("--seeds", type=int, default=2)
-    ap.add_argument("--kinds", default="flatten,gru,factor,gruf,halves")
+    ap.add_argument("--kinds", default="flatten,gru,factor,gruf,halves",
+                    help="comma list; 'kind@W' overrides the window for that kind; "
+                         "'gru-saved' re-scores data/amor_w24_s*.pt (gru, W=24) without training")
+    ap.add_argument("--out", default="data/arch_compare.json")
     args = ap.parse_args()
 
     songs = load_all()
-    W = args.window
     perm = np.random.default_rng(0).permutation(len(songs))
     val_ids, tr_ids = perm[:16], perm[16:]
-    tr = make_index(songs, tr_ids, W)
-    va_index = {int(si): make_index(songs, [si], W) for si in val_ids}
-    va_index = {k: v for k, v in va_index.items() if len(v) >= 64}
-    print(f"W={W}  {args.epochs} epochs  {args.seeds} seeds  "
-          f"{len(tr)} train windows, {len(va_index)} val songs\n")
-    print(f"{'arch':<9} {'params':>9} {'acc':>7} {'q(1-5)':>8} {'h':>7} {'r':>7}")
-    print("-" * 52)
+    print(f"{args.epochs} epochs  {args.seeds} seeds  val songs: {len(val_ids)}\n")
+    print(f"{'arch':<12} {'W':>3} {'params':>9} {'acc':>6} {'h':>6} {'song':>6} "
+          f"{'exact':>6} {'flips':>6} {'e':>6}   per-seed song / e")
+    print("-" * 96)
     res = {}
-    for kind in args.kinds.split(","):
+    for spec in args.kinds.split(","):
+        kind, _, w = spec.partition("@")
+        W = int(w) if w else args.window
+        va_index = {int(si): make_index(songs, [si], W) for si in val_ids}
+        va_index = {k: v for k, v in va_index.items() if len(v) >= 64}
         per_seed = []
-        for s in range(args.seeds):
-            out, npar = run(kind, W, songs, args.epochs, s, tr, va_index)
-            per_seed.append(out)
-        res[kind] = per_seed
+        if kind == "gru-saved":
+            assert W == 24, "the saved gru checkpoints are W=24"
+            for s in range(4):
+                path = ROOT / f"data/amor_w24_s{s}.pt"
+                if not path.exists():
+                    continue
+                model = Model("gru", W * FPB).to(DEV)
+                model.load_state_dict(torch.load(path, map_location=DEV))
+                per_seed.append(evaluate(model, songs, W, va_index))
+            npar = sum(p.numel() for p in model.parameters())
+        else:
+            tr = make_index(songs, tr_ids, W)
+            for s in range(args.seeds):
+                out, npar = run(kind, W, songs, args.epochs, s, tr, va_index)
+                per_seed.append(out)
+        res[spec] = {"W": W, "params": npar, "seeds": per_seed}
         M = lambda k: np.mean([[v[k] for v in o.values()] for o in per_seed])
-        print(f"{kind:<9} {npar:9,} {M('acc'):7.3f} {M('q'):8.3f} "
-              f"{M('h'):7.3f} {M('r'):7.3f}", flush=True)
-    Path(ROOT / "data/arch_compare.json").write_text(json.dumps(res, indent=1))
-    print("\nchance: acc 0.125, h 0.500, r 0.250")
+        Cnt = lambda f: np.mean([sum(f(v) for v in o.values()) for o in per_seed])
+        seeds = " ".join(f"{np.mean([v['song'] for v in o.values()]):.3f}/"
+                         f"{np.mean([v['e'] for v in o.values()]):+.2f}" for o in per_seed)
+        print(f"{spec:<12} {W:3d} {npar:9,} {M('acc'):6.3f} {M('h'):6.3f} {M('song'):6.3f} "
+              f"{Cnt(lambda v: v['song'] > 0.95):6.1f} {Cnt(lambda v: v['flip']):6.1f} "
+              f"{M('e'):+6.2f}   {seeds}", flush=True)
+        Path(ROOT / args.out).write_text(json.dumps(res, indent=1))
+    print(f"\nexact: songs >0.95 of {len(va_index)}; flips: songs decoded to the 1<->5 "
+          "inversion; e: mean evidence for the truth over the flip (nats)")
 
 
 if __name__ == "__main__":
