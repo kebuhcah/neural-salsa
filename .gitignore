@@ -31,7 +31,6 @@ build_features.py
 data/features/
 data/phase_w8.pt
 data/ablation_*.json
-spectro_explorer.py
 data/explorer/
 build_chroma.py
 data/chroma/
