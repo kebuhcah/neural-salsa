@@ -5,18 +5,23 @@
 **Goal.** Predict the salsa **1** and **5** counts from audio. Secondary goal:
 learn NN training and interpretability on a problem with real structure.
 
-**Current best result.** A model that is only 0.686 accurate *per window*
-decodes **12 of 16 held-out songs exactly right** at the song level, because
-phase advances deterministically and 900 weak per-beat votes aggregate into
-one confident answer. Mean song-level accuracy 0.894 (batch-decoded) against a
-0.125 chance baseline.
+**Current best result.** `beatseq` at W=48 (section 14): a per-beat encoder
+plus a transformer across 48 beats. On both seeds it decodes every
+held-out song that single-phase decoding can get -- 0.953 song-level on 15
+songs, where the only misses are the two with annotated 4-beat shifts -- with
+no 1<->5 flips, Amor y Control included. Two seeds, one split: promising,
+not yet confirmed. Before it, gru W=24 scored 0.923 and the original W=8
+model 0.894, both against a 0.125 chance baseline; song-level works at all
+because phase advances deterministically and hundreds of weak per-beat votes
+aggregate into one answer (section 10).
 
 **The single most important thing to know.** Most of this session optimised
 *per-window accuracy*, which is the wrong metric. Section 10 explains why.
 Per-window numbers in sections 6-9 are real but measure a proxy. The context
 sweep has now been re-run at song level (section 13): gru W=24 decodes 0.923
-against 0.858 at W=8, a gain carried entirely by three songs. The
-architecture sweep has **not** been re-run.
+against 0.858 at W=8, a gain carried entirely by three songs. Architectures
+were then compared at song level (section 14): the gain comes from context
+the beatseq model makes affordable, not from the architecture itself.
 
 **The remaining problem is narrower than it looked.** Of the 3 of 16 songs
 that failed song-level decoding, two (La Lucha, Ay, Candela) are annotated
@@ -37,7 +42,9 @@ notching it out fixes every seed (section 13a).
   the phase is a property of the *song*.
 
 ### What is open
-- Architecture, re-measured at song level (`arch_compare.py` now reports it).
+- Confirm beatseq W=48 (section 14) with more seeds and a second split, and
+  re-test W=64 with a larger training budget before calling it worse.
+- A song-aware band gate: the per-window gate learned one fixed preference.
 - A decoder that allows +4 phase shifts (c -> c+5), which the annotations
   actually contain; the existing Viterbi only allows resets to count 1.
 - The online filter gets 0.800 where batch gets 0.894 -- that gap is
@@ -66,7 +73,7 @@ notching it out fixes every seed (section 13a).
     .venv/bin/python context_sweep.py --help   # window-length sweep
     .venv/bin/python validate_halfsim.py       # out-of-sample predictor test
 
-See `LISTENING.md` for per-song difficulty with YouTube links, and section 14
+See `LISTENING.md` for per-song difficulty with YouTube links, and section 15
 for the repo layout and the npz data contract.
 
 ---
@@ -1167,7 +1174,62 @@ ceiling for these songs and is effectively correct. Two consequences:
 
 ---
 
-## 14. What is in this repo
+## 14. Architectures at song level: long context, made cheap
+
+`arch_compare.py --window 24 --epochs 4 --seeds 2 --kinds
+gru-saved,bands,beatseq,beatseq@48,beatseq@64 --out data/arch_song.json`.
+Same split as sections 13-13d. `gru-saved` re-scores the four gru W=24
+models from `amor_compare.py` (no retraining) as the baseline. Song-level
+metrics now include **mean e** per song (evidence for the truth over the
+1<->5 flip), because song accuracy is nearly binary on 16 songs.
+
+Two new bodies:
+
+- **bands**: one small trunk + GRU per frequency band, each predicting the
+  count alone, combined by a learned per-window gate (weighted product of
+  experts), each expert with its own auxiliary loss. Aimed at Amor y
+  Control, where high-mid misleads and the bass carries the truth.
+- **beatseq**: each beat's 16 frames encoded on their own (strided convs,
+  GroupNorm, two sub-beat steps kept), then a 2-layer transformer across
+  the W beat vectors, read out at the last beat. Memory is per beat, not per
+  frame: 0.09 s/batch at W=24 vs 0.60 for the gru, 0.23 at W=64.
+
+W=48/64 drop one short song, so the comparison is paired on the 15 songs
+every run scored (e = mean over seeds per song, then median over songs):
+
+| model | song | median e | e vs gru, songs up/down | flips |
+|---|---|---|---|---|
+| gru W=24 (4 seeds) | 0.918 | +3.57 | -- | Amor y Control 2/4 seeds |
+| bands W=24 | 0.818 | +1.91 | 8 / 7 | Yamulemau 2/2; two others 1/2 |
+| beatseq W=24 | 0.918 | +3.61 | 7 / 8 | one song 1/2 |
+| **beatseq W=48** | **0.953** | **+4.14** | **12 / 2** | **none** |
+| beatseq W=64 | 0.855 | +3.84 | 9 / 6 | three songs, 1/2 each |
+
+- **beatseq W=48 is at the ceiling on both seeds.** 0.953 is every song but
+  La Lucha and Ay, Candela, whose annotations contain real 4-beat shifts
+  (section 13). No flips; Amor y Control decodes on both seeds (e +0.28 ->
+  +2.42); e up on 12 of 15 songs, +1.19 nats on average.
+- **The gain is context, not architecture.** beatseq at W=24 ties the gru
+  almost exactly (same song score, e up/down 7/8). What it buys is cheap
+  long windows: the gru's trunk could not pass W=24 without micro-batching,
+  which changes BatchNorm's computation (section 9).
+- **W=64 is worse and unstable** (seeds 0.888 / 0.822) -- but every run had the
+  same fixed budget (4 x 500 batches). Section 12 already found one
+  regression that was budget, not model. Re-test with more training before
+  concluding that W=64 is too long.
+- **The bands gate learned a fixed preference, not per-song trust.** Gate
+  weights are nearly identical on every song: bass ~1.8, low-mid ~1.45, mid
+  and high-mid ~0.5, high ~0.7. That fixes Amor y Control (both seeds) but
+  breaks Yamulemau (flipped on both seeds, e -6.07), which presumably needs
+  the upper bands. The gate sees one window, so it cannot know which band is
+  reliable *in this song*; a song-aware gate would need song-level context.
+
+Caveats: two seeds, one split of 15-16 songs. beatseq W=48's lead is
+promising, not established.
+
+---
+
+## 15. What is in this repo
 
 Tracked (generic; reads only `data/features/*.npz`):
 
@@ -1208,7 +1270,7 @@ not tied to this dataset.
 
 ---
 
-## 15. Reference notes
+## 16. Reference notes
 
 ### Shift-tolerant loss (Beat This!, ISMIR 2024)
 Model runs at 50 fps (22.05 kHz, hop 441, 128 mels, 30 Hz–10 kHz). Targets are
