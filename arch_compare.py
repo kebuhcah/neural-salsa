@@ -34,6 +34,8 @@ the continuous evidence for the truth over the 1<->5 flip.
 """
 import argparse
 import json
+import re
+import time
 from pathlib import Path
 
 import numpy as np
@@ -351,27 +353,39 @@ def main():
     ap.add_argument("--epochs", type=int, default=3)
     ap.add_argument("--seeds", type=int, default=2)
     ap.add_argument("--kinds", default="flatten,gru,factor,gruf,halves",
-                    help="comma list; 'kind@W' overrides the window for that kind; "
-                         "'gru-saved' re-scores data/amor_w24_s*.pt (gru, W=24) without training")
+                    help="comma list of kind[@W][*EPOCHS]; '@W' and '*E' override the window "
+                         "and epochs for that kind; 'gru-saved' re-scores data/amor_w24_s*.pt "
+                         "(gru, W=24, split 0) without training")
+    ap.add_argument("--split", type=int, default=0,
+                    help="which 16 songs are held out: perm[16*k:16*(k+1)]. Split 0 is the "
+                         "one every earlier result used; others are disjoint from it")
+    ap.add_argument("--seed0", type=int, default=0, help="first seed, so new seeds can be added")
     ap.add_argument("--out", default="data/arch_compare.json")
     args = ap.parse_args()
 
     songs = load_all()
     perm = np.random.default_rng(0).permutation(len(songs))
-    val_ids, tr_ids = perm[:16], perm[16:]
-    print(f"{args.epochs} epochs  {args.seeds} seeds  val songs: {len(val_ids)}\n")
+    k = args.split
+    val_ids = perm[16 * k:16 * (k + 1)]
+    tr_ids = np.concatenate([perm[:16 * k], perm[16 * (k + 1):]])
+    seeds_used = list(range(args.seed0, args.seed0 + args.seeds))
+    print(f"split {k}  seeds {seeds_used}  val songs: {len(val_ids)}\n")
     print(f"{'arch':<12} {'W':>3} {'params':>9} {'acc':>6} {'h':>6} {'song':>6} "
           f"{'exact':>6} {'flips':>6} {'e':>6}   per-seed song / e")
     print("-" * 96)
     res = {}
     for spec in args.kinds.split(","):
-        kind, _, w = spec.partition("@")
-        W = int(w) if w else args.window
+        m = re.fullmatch(r"([\w-]+)(?:@(\d+))?(?:\*(\d+))?", spec)
+        assert m, f"bad kind spec {spec!r}"
+        kind = m.group(1)
+        W = int(m.group(2)) if m.group(2) else args.window
+        epochs = int(m.group(3)) if m.group(3) else args.epochs
         va_index = {int(si): make_index(songs, [si], W) for si in val_ids}
-        va_index = {k: v for k, v in va_index.items() if len(v) >= 64}
+        va_index = {i: v for i, v in va_index.items() if len(v) >= 64}
         per_seed = []
+        t0 = time.time()
         if kind == "gru-saved":
-            assert W == 24, "the saved gru checkpoints are W=24"
+            assert W == 24 and k == 0, "the saved gru checkpoints are W=24, split 0"
             for s in range(4):
                 path = ROOT / f"data/amor_w24_s{s}.pt"
                 if not path.exists():
@@ -382,17 +396,20 @@ def main():
             npar = sum(p.numel() for p in model.parameters())
         else:
             tr = make_index(songs, tr_ids, W)
-            for s in range(args.seeds):
-                out, npar = run(kind, W, songs, args.epochs, s, tr, va_index)
+            for s in seeds_used:
+                out, npar = run(kind, W, songs, epochs, s, tr, va_index)
                 per_seed.append(out)
-        res[spec] = {"W": W, "params": npar, "seeds": per_seed}
+        mins = (time.time() - t0) / 60
+        res[spec] = {"W": W, "epochs": epochs, "split": k, "params": npar,
+                     "seed_ids": list(range(4)) if kind == "gru-saved" else seeds_used,
+                     "minutes": round(mins, 1), "seeds": per_seed}
         M = lambda k: np.mean([[v[k] for v in o.values()] for o in per_seed])
         Cnt = lambda f: np.mean([sum(f(v) for v in o.values()) for o in per_seed])
         seeds = " ".join(f"{np.mean([v['song'] for v in o.values()]):.3f}/"
                          f"{np.mean([v['e'] for v in o.values()]):+.2f}" for o in per_seed)
         print(f"{spec:<12} {W:3d} {npar:9,} {M('acc'):6.3f} {M('h'):6.3f} {M('song'):6.3f} "
               f"{Cnt(lambda v: v['song'] > 0.95):6.1f} {Cnt(lambda v: v['flip']):6.1f} "
-              f"{M('e'):+6.2f}   {seeds}", flush=True)
+              f"{M('e'):+6.2f}   {seeds}   [{mins:.0f} min]", flush=True)
         Path(ROOT / args.out).write_text(json.dumps(res, indent=1))
     print(f"\nexact: songs >0.95 of {len(va_index)}; flips: songs decoded to the 1<->5 "
           "inversion; e: mean evidence for the truth over the flip (nats)")
