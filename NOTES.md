@@ -47,9 +47,10 @@ notching it out fixes every seed (section 13a).
 ### What is open
 - Why beatseq systematically flips Ocairi and Un Dia Yo while the gru does
   not, and why every model fails El Bembe (section 14b).
-- **A +4-shift decoder, now the top item:** five held-out songs have
-  annotated 4-beat shifts and they are exactly the songs nothing decodes;
-  in four the models already follow the shifts (section 14b).
+- Shift songs: five held-out songs have annotated 4-beat shifts and they are
+  exactly the songs nothing decodes. A +4-shift decoder recovers them but
+  breaks songs where models are misled for long stretches (section 14c); a
+  model that sees more of the song is the likelier route.
 - El Bembe: by ear, is its annotated 1 right before 2:43? The models are 4
   beats off on both sides of its shift.
 - A song-aware band gate: the per-window gate learned one fixed preference.
@@ -1328,7 +1329,61 @@ a listener can tell by checking where the 1 falls before 2:43.
 
 **Next:** a decoder that allows a rare +4 phase jump (c -> c+4), re-run on the
 saved predictions. It should recover the four shift songs the models already
-get right, leaving El Bembe as the only real failure.
+get right, leaving El Bembe as the only real failure. (Tried in 14c: it does
+recover them, but breaks others.)
+
+### 14c. The +4-shift decoder: recovers shift songs, breaks misled ones
+
+**What the annotations say about shifts** (all 101 songs):
+- Every one of the 56 phase changes is a jump of **exactly 4 beats**; none
+  of any other size. 27 of 101 songs have at least one. So `decode_song`'s
+  resets to count 1 model something that never happens.
+- **Every shift lands on count 1** (56 of 56), so every section between
+  shifts is 4 mod 8 beats long.
+- Sections are not reliably long: 6 of 29 interior sections are 20-36
+  beats, as short as the stretches where models are misled. A minimum
+  section length cannot separate them.
+
+**Decoder:** `stage_b_decode.decode_shift`, Viterbi over the 8 phase offsets;
+the offset stays or, with a small prior, jumps by 4, only where the new
+phase lands on count 1. The prior defaults to the corpus rate (6.3e-4 per
+beat, taken per split from training songs only). `temper` scales the
+evidence, because overlapping windows count each beat ~W times. Synthetic
+check: recovers planted shifts to within 4 beats and invents none in a
+shift-free song.
+
+**Evaluation** (`decode_eval.py`, on the saved 14b predictions, no
+retraining): 4 jump priors x 4 tempers, selected on split 0, reported on
+split 1. gru x4 + beatseq x4, change in mean per-beat accuracy vs batch:
+
+| | split 0 (select) | split 1 (test) |
+|---|---|---|
+| range over the 16 settings | -0.035 .. +0.014 | -0.041 .. +0.003 |
+| selected: prior 1e-6, temper 1/24 | +0.014 | **-0.022** |
+
+At the selected setting, per song (combined ensemble): La Lucha
+0.77 -> 0.98 and Fatti Mandare 0.72 -> 0.99 are recovered -- real shift songs
+where the models follow the music -- but Un Dia Yo drops 1.00 -> 0.59 and El
+Bembe 0.38 -> 0.16. With the corpus prior and no tempering, Cuanto Te Di
+(0.40 -> 0.98) and Ay, Candela (0.50 -> 0.71) are recovered too, but Amor y
+Control (1.00 -> 0.66), Ocairi and La Eternidad del Amor break.
+
+**Why it cannot win as is:** from posteriors alone, a real shift in the
+music and a long stretch where the models are confidently misled look the
+same -- Amor y Control's inverted passages, and beatseq's half-song
+inversion of Un Dia Yo, pay for two jumps just as a real shift section
+does. The decoder is only as good as the models' worst misled stretch.
+
+**Partial exception, suggestive only:** gru-only ensembles improve on both
+splits at the selected setting (0.951 -> 0.967 and 0.902 -> 0.917, one more
+song above 0.95 on each), which was chosen on the combined ensemble, not on
+the gru. The gru's misled stretches are shorter and weaker than beatseq's.
+One setting, two splits, several models inspected -- not established.
+
+**Verdict:** keep single-phase batch decoding as the default. The shift
+decoder stays available (`decode_shift`); a shift-aware *model* -- one that
+sees enough of the song to tell a real phrase change from a misleading
+passage -- is the likelier route than a better decoder.
 
 **Best configuration so far: 4 gru W=24 seeds + 4 beatseq W=48 seeds.** The
 cost is mostly the gru (21 min per seed vs 6 for beatseq). Caveats: two

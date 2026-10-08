@@ -57,6 +57,46 @@ def decode_song(logp, reset_logprob=np.log(6e-4)):
     return path
 
 
+def decode_shift(logp, beats, shift_prob=6.3e-4, temper=1.0, land_on_one=True):
+    """Viterbi over the 8 phase offsets, allowing rare jumps of exactly 4 beats.
+
+    The annotations' phase changes are all +4 shifts -- 56 across the corpus,
+    in 27 of 101 songs, none of any other size (NOTES 14c) -- a 4-beat phrase
+    inserted or dropped, which is precisely the 1<->5 relation. `decode_song`
+    models resets to count 1, which never occur.
+
+    State h is the phase offset: beat b has count (h + b) % 8. Between
+    consecutive scored windows the offset stays, or with `shift_prob` jumps
+    to h + 4. `beats` are the windows' beat indices (they can have gaps where
+    windows were untrusted). `temper` scales the evidence: overlapping windows
+    count each beat many times, so raw log-probs are overconfident and could
+    pay for a spurious jump with a short misleading stretch.
+
+    land_on_one: every annotated shift lands on count 1 (56 of 56), so a jump
+    into offset h is only allowed at a beat where (h + b) % 8 == 0.
+
+    Returns the per-window phase offset and the decoded count, (off + beats) % 8.
+    """
+    L = len(logp)
+    emit = temper * logp[np.arange(L)[:, None], (np.arange(N)[None, :] + beats[:, None]) % N]
+    stay, jump = np.log1p(-shift_prob), np.log(shift_prob)
+    delta = emit[0] - np.log(N)
+    back = np.zeros((L, N), dtype=np.int8)
+    other = (np.arange(N) + 4) % N
+    for t in range(1, L):
+        from_stay, from_jump = delta + stay, delta[other] + jump
+        take_jump = from_jump > from_stay
+        if land_on_one:
+            take_jump &= (np.arange(N) + beats[t]) % N == 0
+        back[t] = np.where(take_jump, other, np.arange(N))
+        delta = np.where(take_jump, from_jump, from_stay) + emit[t]
+    off = np.zeros(L, dtype=np.int8)
+    off[-1] = int(np.argmax(delta))
+    for t in range(L - 1, 0, -1):
+        off[t - 1] = back[t, off[t]]
+    return off, (off + beats) % N
+
+
 def confusion_margin(pred, true):
     """p - q: the quantity that actually decides song-level phase.
 
