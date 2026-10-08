@@ -5,13 +5,15 @@
 **Goal.** Predict the salsa **1** and **5** counts from audio. Secondary goal:
 learn NN training and interpretability on a problem with real structure.
 
-**Current best result.** Two models are roughly tied at song level (section
-14a): gru at W=24 (0.923 on split 0, 0.910 on a second split) and `beatseq`
-at W=48, a per-beat encoder plus a transformer across 48 beats (at the
-ceiling on 5 of 6 seeds on split 0, but 0.851 on split 1). Their
-differences are a few single-seed flips each way. beatseq is more confident
-in the true count on most songs and trains ~3.5x faster, so it is the
-reasonable default. The original W=8 model scored 0.894; chance is 0.125.
+**Current best result.** An ensemble of 4 gru W=24 seeds plus 4 `beatseq`
+W=48 seeds (section 14b): 0.951 on split 0 with no flips, 0.905 on a second
+split of 16 different songs. The two models have different blind spots --
+beatseq systematically flips Ocairi and Un Dia Yo, single gru seeds flip
+Amor y Control -- and the combination matches the better one on each split.
+Across both splits only El Bembe is a clear model failure; Cuanto Te Di
+looks like an annotated phase shift. Single models: gru W=24 0.923 / 0.906;
+beatseq W=48 0.953 / 0.823 (more confident, ~3.5x faster to train). The
+original W=8 model scored 0.894; chance is 0.125.
 Song-level works at all because phase advances deterministically and
 hundreds of weak per-beat votes aggregate into one answer (section 10).
 
@@ -42,8 +44,8 @@ notching it out fixes every seed (section 13a).
   the phase is a property of the *song*.
 
 ### What is open
-- Seed ensembling (average log-probabilities across seeds before decoding):
-  the remaining failures are mostly single-seed flips (section 14a).
+- Why beatseq systematically flips Ocairi and Un Dia Yo while the gru does
+  not, and why every model fails El Bembe (section 14b).
 - Cuanto Te Di and Fatti Mandare Dalla Mamma (split 1) look like more
   annotated 4-beat shifts -- check, and with La Lucha and Ay, Candela they
   strengthen the case for a +4-shift decoder.
@@ -1263,6 +1265,50 @@ is about the noise floor here; the section 14 "ceiling on both seeds"
 headline was too strong. The remaining failures being single-seed suggests
 the next step: **ensemble seeds** (average their log-probabilities before
 decoding), which beatseq makes cheap.
+
+### 14b. Seed ensembles, and combining the two models
+
+`arch_compare.py --save-logp data/ens` saves each seed's per-song
+log-probs; `ensemble.py` averages probabilities over every k-subset of
+seeds (mean over subsets reported, so no hand-picked combination);
+`ensemble_cross.py` combines the two models, aligned by beat index because
+their windows differ. 4 seeds per model per split (log: `data/ensemble.log`).
+
+| model, split | 1 seed | 4-seed ensemble | what happened |
+|---|---|---|---|
+| gru W=24, split 0 | 0.923 | **0.954** | Amor y Control flipped on 2/4 seeds; every 3+ seed ensemble fixes it |
+| beatseq W=48, split 0 | 0.953 | 0.953 | at the ceiling on every seed |
+| gru W=24, split 1 | 0.906 | 0.902 | El Bembe (3/4 seeds) and Cuanto Te Di (4/4) stay flipped |
+| beatseq W=48, split 1 | 0.823 | **0.783** | Ocairi and Un Dia Yo flip on 2/4 seeds each; the ensemble locks them in |
+
+- **Ensembling fixes minority errors and locks in majority ones.** It is a
+  vote: a flip made by a minority of seeds disappears, one made by half or
+  more becomes certain.
+- **Correction to 14a:** beatseq's misses on Ocairi and Un Dia Yo looked like
+  one-off seed flips with two seeds; with four they occur on half of them.
+  They are a **systematic beatseq weakness** on those songs, so on split 1
+  beatseq W=48 is genuinely worse than the gru, while on split 0 it is better.
+
+**Combining both models covers both blind spots** (scored on the beats both
+cover, so values differ slightly from the table above):
+
+| ensemble | split 0 | split 1 |
+|---|---|---|
+| gru x4 | 0.951, no flips | 0.905 (El Bembe, Cuanto Te Di) |
+| beatseq x4 | 0.951, no flips | 0.782 (+ Ocairi, Un Dia Yo) |
+| **gru x4 + beatseq x4** | **0.951, no flips** | **0.905** (El Bembe, Cuanto Te Di) |
+| gru x2 + beatseq x2 (all 36 pairs) | 0.951, no flips | 0.895 (Un Dia Yo in 7/36) |
+
+On each split the combination matches the better model's ensemble and never
+does worse: the gru outvotes beatseq's systematic misses on split 1, and the
+mix keeps the gru's Amor y Control fix on split 0. Across all 32 held-out
+songs, what remains is **El Bembe**, which every model gets wrong, and
+**Cuanto Te Di**, which looks like an annotated phase shift rather than a
+model error (positive e throughout; unverified).
+
+**Best configuration so far: 4 gru W=24 seeds + 4 beatseq W=48 seeds.** The
+cost is mostly the gru (21 min per seed vs 6 for beatseq). Caveats: two
+splits of 16 songs; the remaining differences are a few songs.
 
 ---
 
