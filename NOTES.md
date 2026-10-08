@@ -10,8 +10,9 @@ W=48 seeds (section 14b): 0.951 on split 0 with no flips, 0.905 on a second
 split of 16 different songs. The two models have different blind spots --
 beatseq systematically flips Ocairi and Un Dia Yo, single gru seeds flip
 Amor y Control -- and the combination matches the better one on each split.
-Across both splits only El Bembe is a clear model failure; Cuanto Te Di
-looks like an annotated phase shift. Single models: gru W=24 0.923 / 0.906;
+Every remaining miss across both splits is a song with annotated 4-beat
+phase shifts; in all but El Bembe the models follow the shifts and only the
+single-phase decoder fails (section 14b). Single models: gru W=24 0.923 / 0.906;
 beatseq W=48 0.953 / 0.823 (more confident, ~3.5x faster to train). The
 original W=8 model scored 0.894; chance is 0.125.
 Song-level works at all because phase advances deterministically and
@@ -46,12 +47,12 @@ notching it out fixes every seed (section 13a).
 ### What is open
 - Why beatseq systematically flips Ocairi and Un Dia Yo while the gru does
   not, and why every model fails El Bembe (section 14b).
-- Cuanto Te Di and Fatti Mandare Dalla Mamma (split 1) look like more
-  annotated 4-beat shifts -- check, and with La Lucha and Ay, Candela they
-  strengthen the case for a +4-shift decoder.
+- **A +4-shift decoder, now the top item:** five held-out songs have
+  annotated 4-beat shifts and they are exactly the songs nothing decodes;
+  in four the models already follow the shifts (section 14b).
+- El Bembe: by ear, is its annotated 1 right before 2:43? The models are 4
+  beats off on both sides of its shift.
 - A song-aware band gate: the per-window gate learned one fixed preference.
-- A decoder that allows +4 phase shifts (c -> c+5), which the annotations
-  actually contain; the existing Viterbi only allows resets to count 1.
 - The online filter gets 0.800 where batch gets 0.894 -- that gap is
   recoverable by better causal decoding.
 - **Amor y Control**: localised (section 13a). Its 2.5-6 kHz band points four
@@ -1302,9 +1303,32 @@ cover, so values differ slightly from the table above):
 On each split the combination matches the better model's ensemble and never
 does worse: the gru outvotes beatseq's systematic misses on split 1, and the
 mix keeps the gru's Amor y Control fix on split 0. Across all 32 held-out
-songs, what remains is **El Bembe**, which every model gets wrong, and
-**Cuanto Te Di**, which looks like an annotated phase shift rather than a
-model error (positive e throughout; unverified).
+songs, what remains is **El Bembe** and **Cuanto Te Di** -- see below.
+
+**All the remaining "failures" contain annotated 4-beat shifts.** Phase
+segments from the counts, and mean e per segment (4 seeds, split 1):
+
+| song | annotated phase segments | e per segment | reading |
+|---|---|---|---|
+| Cuanto Te Di | 0 (0:01), **4** (1:01), 0 (1:42), **4** (2:10), 0 (2:51) | gru +4.5/+5.5/+4.0/+6.1/-0.3; beatseq +4.1/+6.7/+3.9/+8.7/+2.3 | models follow every shift: decoder failure |
+| Fatti Mandare Dalla Mamma | 0, **4** (0:42), 0 (1:51) | +5.9 to +9.7 in every segment | models follow every shift: decoder failure |
+| El Bembe | 0, **4** (2:43) | gru -2.1/-2.9; beatseq -3.4/-4.3 | models follow the shift but are 4 beats off on both sides |
+
+With La Lucha and Ay, Candela (section 13) that makes five songs with
+annotated 4-beat shifts, and they are exactly the songs no configuration
+decodes. In four of them the models track the annotation through every
+shift -- a single-phase decode cannot represent it (best single phase covers
+68% of Cuanto Te Di), and Cuanto Te Di even decodes to the minority phase
+because the models are most confident inside its phase-4 stretches.
+
+El Bembe is different: e is negative on *both* sides of its shift, so the
+models detect the shift but sit 4 beats off throughout. Either a genuine
+flip like Amor y Control, or an annotation off by 4 for the whole song --
+a listener can tell by checking where the 1 falls before 2:43.
+
+**Next:** a decoder that allows a rare +4 phase jump (c -> c+4), re-run on the
+saved predictions. It should recover the four shift songs the models already
+get right, leaving El Bembe as the only real failure.
 
 **Best configuration so far: 4 gru W=24 seeds + 4 beatseq W=48 seeds.** The
 cost is mostly the gru (21 min per seed vs 6 for beatseq). Caveats: two
