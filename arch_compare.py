@@ -270,7 +270,7 @@ def song_level(logp, beats, truth):
 
 
 def run(kind, W, songs, epochs, seed, tr, va_index, aux=0.3, micro=None,
-        return_model=False):
+        return_model=False, raw=None):
     """micro: activation-memory cap via gradient accumulation.
 
     The first conv keeps full time x mel resolution at 32 channels, so one
@@ -313,13 +313,17 @@ def run(kind, W, songs, epochs, seed, tr, va_index, aux=0.3, micro=None,
             opt.step(); nb += 1
             if nb >= 500:
                 break
-    out = evaluate(model, songs, W, va_index, micro)
+    out = evaluate(model, songs, W, va_index, micro, raw=raw)
     n = sum(p.numel() for p in model.parameters())
     return (out, n, model) if return_model else (out, n)
 
 
-def evaluate(model, songs, W, va_index, bs=128):
-    """Per-song window and song-level metrics; band gate weights if present."""
+def evaluate(model, songs, W, va_index, bs=128, raw=None):
+    """Per-song window and song-level metrics; band gate weights if present.
+
+    raw: if a dict, also filled with {song: (logp, beat index, truth)} so
+    seeds can be ensembled later without retraining (ensemble.py).
+    """
     model.eval()
     out = {}
     with torch.no_grad():
@@ -344,6 +348,8 @@ def evaluate(model, songs, W, va_index, bs=128):
                        **song_level(logp, idx[:len(t), 1], t)}
             if G:
                 out[si]["gate"] = np.concatenate(G).mean(0).round(3).tolist()
+            if raw is not None:
+                raw[si] = (logp.astype(np.float32), idx[:len(t), 1], t)
     return out
 
 
@@ -361,6 +367,9 @@ def main():
                          "one every earlier result used; others are disjoint from it")
     ap.add_argument("--seed0", type=int, default=0, help="first seed, so new seeds can be added")
     ap.add_argument("--out", default="data/arch_compare.json")
+    ap.add_argument("--save-logp", default=None, metavar="DIR",
+                    help="also save each seed's per-song log-probs to DIR/<spec>_split<k>_s<seed>.npz "
+                         "for ensemble.py")
     args = ap.parse_args()
 
     songs = load_all()
@@ -384,6 +393,16 @@ def main():
         va_index = {i: v for i, v in va_index.items() if len(v) >= 64}
         per_seed = []
         t0 = time.time()
+
+        def save(s, raw):
+            if not args.save_logp:
+                return
+            d = Path(ROOT / args.save_logp); d.mkdir(parents=True, exist_ok=True)
+            safe = spec.replace("*", "x").replace("@", "_w")
+            np.savez_compressed(d / f"{safe}_split{k}_s{s}.npz", **{
+                f"{si}_{part}": arr for si, trio in raw.items()
+                for part, arr in zip(("logp", "beats", "truth"), trio)})
+
         if kind == "gru-saved":
             assert W == 24 and k == 0, "the saved gru checkpoints are W=24, split 0"
             for s in range(4):
@@ -392,13 +411,17 @@ def main():
                     continue
                 model = Model("gru", W * FPB).to(DEV)
                 model.load_state_dict(torch.load(path, map_location=DEV))
-                per_seed.append(evaluate(model, songs, W, va_index))
+                raw = {}
+                per_seed.append(evaluate(model, songs, W, va_index, raw=raw))
+                save(s, raw)
             npar = sum(p.numel() for p in model.parameters())
         else:
             tr = make_index(songs, tr_ids, W)
             for s in seeds_used:
-                out, npar = run(kind, W, songs, epochs, s, tr, va_index)
+                raw = {}
+                out, npar = run(kind, W, songs, epochs, s, tr, va_index, raw=raw)
                 per_seed.append(out)
+                save(s, raw)
         mins = (time.time() - t0) / 60
         res[spec] = {"W": W, "epochs": epochs, "split": k, "params": npar,
                      "seed_ids": list(range(4)) if kind == "gru-saved" else seeds_used,
