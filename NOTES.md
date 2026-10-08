@@ -5,15 +5,15 @@
 **Goal.** Predict the salsa **1** and **5** counts from audio. Secondary goal:
 learn NN training and interpretability on a problem with real structure.
 
-**Current best result.** `beatseq` at W=48 (section 14): a per-beat encoder
-plus a transformer across 48 beats. On both seeds it decodes every
-held-out song that single-phase decoding can get -- 0.953 song-level on 15
-songs, where the only misses are the two with annotated 4-beat shifts -- with
-no 1<->5 flips, Amor y Control included. Two seeds, one split: promising,
-not yet confirmed. Before it, gru W=24 scored 0.923 and the original W=8
-model 0.894, both against a 0.125 chance baseline; song-level works at all
-because phase advances deterministically and hundreds of weak per-beat votes
-aggregate into one answer (section 10).
+**Current best result.** Two models are roughly tied at song level (section
+14a): gru at W=24 (0.923 on split 0, 0.910 on a second split) and `beatseq`
+at W=48, a per-beat encoder plus a transformer across 48 beats (at the
+ceiling on 5 of 6 seeds on split 0, but 0.851 on split 1). Their
+differences are a few single-seed flips each way. beatseq is more confident
+in the true count on most songs and trains ~3.5x faster, so it is the
+reasonable default. The original W=8 model scored 0.894; chance is 0.125.
+Song-level works at all because phase advances deterministically and
+hundreds of weak per-beat votes aggregate into one answer (section 10).
 
 **The single most important thing to know.** Most of this session optimised
 *per-window accuracy*, which is the wrong metric. Section 10 explains why.
@@ -42,8 +42,11 @@ notching it out fixes every seed (section 13a).
   the phase is a property of the *song*.
 
 ### What is open
-- Confirm beatseq W=48 (section 14) with more seeds and a second split, and
-  re-test W=64 with a larger training budget before calling it worse.
+- Seed ensembling (average log-probabilities across seeds before decoding):
+  the remaining failures are mostly single-seed flips (section 14a).
+- Cuanto Te Di and Fatti Mandare Dalla Mamma (split 1) look like more
+  annotated 4-beat shifts -- check, and with La Lucha and Ay, Candela they
+  strengthen the case for a +4-shift decoder.
 - A song-aware band gate: the per-window gate learned one fixed preference.
 - A decoder that allows +4 phase shifts (c -> c+5), which the annotations
   actually contain; the existing Viterbi only allows resets to count 1.
@@ -1226,6 +1229,40 @@ every run scored (e = mean over seeds per song, then median over songs):
 
 Caveats: two seeds, one split of 15-16 songs. beatseq W=48's lead is
 promising, not established.
+
+### 14a. Confirmation: more confident, not demonstrably better
+
+`arch_compare.py` with `--split`, `--seed0` and per-kind epochs
+(`data/confirm_*.json`; log in `data/confirm.log`). Three runs:
+
+| run | result | time |
+|---|---|---|
+| A. split 0, beatseq W=48, seeds 2-5 | 3 of 4 at the ceiling (0.953), one 0.886; one flip in four seeds | 24 min |
+| B. split 0, beatseq W=64, 8 epochs, seeds 0-1 | 0.955 / **0.822** -- seed 1 scores exactly what it did at 4 epochs | 31 min |
+| C. split 1 (16 disjoint songs), gru W=24 vs beatseq W=48, seeds 0-1 | gru 0.910 (1.5 flips) vs beatseq **0.851** (2.5 flips) | 42 / 12 min |
+
+- **Split 0 holds:** with the first two, 5 of 6 beatseq W=48 seeds sit at
+  the ceiling.
+- **Split 1 reverses the song-level result**, but per song the gap is two
+  single-seed flips (Un Dia Yo on seed 0, Ocairi on seed 1) that the gru did
+  not make. Everything else is shared: El Bembe is hard for both (negative
+  e, one seed flipped each); Cuanto Te Di (0.39) and Fatti Mandare Dalla
+  Mamma (0.72) fail identically for both models and seeds while e is
+  strongly positive (+3.6 to +10.4) -- the La Lucha pattern, probably
+  annotated 4-beat shifts rather than model failures (unverified).
+- **What replicates is confidence and cost.** beatseq W=48 has higher e on
+  12 of 15 songs (split 0) and 10 of 16 (split 1; median +4.65 vs +3.98),
+  and trains ~3.5x faster.
+- **W=64 is not a budget problem.** Doubling the epochs leaves seed 1 at
+  exactly 0.822, so W=64 is unstable, not undertrained.
+
+**Verdict:** beatseq W=48 is a reasonable default -- cheaper and more
+confident -- but **not demonstrably better at song level**. Its split-0 lead
+and split-1 deficit both come down to a handful of single-seed flips, which
+is about the noise floor here; the section 14 "ceiling on both seeds"
+headline was too strong. The remaining failures being single-seed suggests
+the next step: **ensemble seeds** (average their log-probabilities before
+decoding), which beatseq makes cheap.
 
 ---
 
