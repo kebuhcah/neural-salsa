@@ -1385,6 +1385,76 @@ decoder stays available (`decode_shift`); a shift-aware *model* -- one that
 sees enough of the song to tell a real phrase change from a misleading
 passage -- is the likelier route than a better decoder.
 
+### 14d. How much audio does it take? Phase from 4-24 beats, per song
+
+Question: for each model and song, in what share of W-beat stretches of
+*audio* does the model identify the correct phase, given only that stretch?
+A model with a W-beat window answers it directly: it sees exactly W beats
+and predicts the last beat's count, which fixes the phase -- so its
+per-window accuracy on a song is that share (one stretch starting at every
+beat). `phase_from_audio.py` tabulates it from saved results. A trained
+model's number is a lower bound on what the audio contains.
+
+**gru, from the section 13 sweep** (split 0, 2 seeds; `data/context_song.json`):
+mean 67% / 71% / 78% at 8 / 16 / 24 beats; per song 37-90% at 8 beats.
+
+**beatseq, new** (4 seeds, both splits = 32 songs; `data/short_s{0,1}.json`,
+log `data/short.log`):
+
+    song                       4 beats  8 beats 12 beats 16 beats  flips among errors at 4
+    El Bembe                       23%      23%      27%      27%      79%
+    Lamento Boliviano              38%      51%      57%      67%      42%
+    La Eternidad Del Amor          41%      43%      37%      39%      50%
+    Amor y Control                 43%      47%      50%      64%      93%
+    Un Dia Yo                      46%      54%      57%      59%      80%
+    Gotas De Lluvia                47%      61%      64%      55%      92%
+    Si Supieras                    49%      55%      65%      64%      86%
+    La Maquinera                   50%      54%      58%      59%      30%
+    Vuela Muy Alto                 50%      60%      51%      62%      39%
+    Lluvia Con Nieve               52%      62%      49%      57%      55%
+    Salsa #5                       53%      48%      54%      69%      36%
+    Ocairi                         54%      51%      54%      50%      58%
+    Ni Fio, Ni Doy, Ni Presto      55%      62%      60%      60%      50%
+    Cuanto Te Di                   57%      67%      76%      79%      90%
+    Marcando La Distancia          57%      63%      69%      71%      36%
+    Federico Boogaloo              58%      71%      54%      69%      75%
+    Ay, Candela                    58%      62%      57%      53%      70%
+    La Lucha                       60%      66%      68%      76%      85%
+    Te Amare                       61%      71%      73%      69%      36%
+    Tres Dias                      61%      63%      67%      71%      57%
+    El Cantante                    62%      57%      57%      63%      89%
+    Mi Mary                        62%      59%      64%      59%      79%
+    Mi Mulata                      66%      72%      74%      77%      90%
+    El Cuchi Cuchi                 66%      73%      76%      77%      39%
+    Yamulemau                      70%      72%      66%      64%      79%
+    Oye Como Va                    70%      75%      68%      73%      25%
+    No Me Celes                    70%      69%      81%      65%      82%
+    Sin Salsa No Hay Paraiso       73%      79%      81%      84%     100%
+    Ojos Chinos                    74%      81%      73%      76%      77%
+    I Love Salsa                   77%      77%      78%      82%      75%
+    Fatti Mandare Dalla Mamma      78%      88%      87%      92%      74%
+    Como Lo Hacen                  83%      86%      79%      82%      90%
+    mean of 32 songs               58%      63%      64%      66%
+
+- **One bar is often enough.** From 4 beats beatseq finds the phase in 58%
+  of stretches on average (chance 12.5%), 83% for the easiest song. The
+  which-half decision alone is 65% from 4 beats (chance 50%): within a
+  single bar, the two halves of the 8-count already sound different.
+- **More audio helps only modestly per stretch**: 58 -> 63 -> 64 -> 66% from
+  4 to 16 beats. Only Fatti Mandare reaches 90% (at 16); El Bembe (~25%) and
+  La Eternidad del Amor (~40%) stay low at every length.
+- **Song-level decoding works from one bar.** Aggregating all 4-beat
+  stretches decodes 0.889 song-level on split 0 on every seed; 16 beats
+  reaches 0.953 there, the shift-song ceiling.
+- **The error mix is a property of the song.** At 4 beats the share of
+  errors that are 1<->5 flips runs from 25% (Oye Como Va: unsure within the
+  half) to 100% (Sin Salsa No Hay Paraiso: sure of the position, unsure
+  which half).
+- On split 0, the gru is a little better per stretch at 8 beats (67% vs
+  64%): beatseq is more confident but slightly less accurate per window,
+  as in 14a. Some cells are non-monotonic (Federico Boogaloo 58/71/54/69%)
+  -- several points of seed noise per cell.
+
 **Best configuration so far: 4 gru W=24 seeds + 4 beatseq W=48 seeds.** The
 cost is mostly the gru (21 min per seed vs 6 for beatseq). Caveats: two
 splits of 16 songs; the remaining differences are a few songs.
