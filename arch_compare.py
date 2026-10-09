@@ -270,7 +270,7 @@ def song_level(logp, beats, truth):
 
 
 def run(kind, W, songs, epochs, seed, tr, va_index, aux=0.3, micro=None,
-        return_model=False, raw=None):
+        return_model=False, raw=None, train_index=None, train_out=None):
     """micro: activation-memory cap via gradient accumulation.
 
     The first conv keeps full time x mel resolution at 32 channels, so one
@@ -314,6 +314,10 @@ def run(kind, W, songs, epochs, seed, tr, va_index, aux=0.3, micro=None,
             if nb >= 500:
                 break
     out = evaluate(model, songs, W, va_index, micro, raw=raw)
+    if train_index is not None and train_out is not None:
+        # Same metrics on songs the model trained on: the train/val gap says
+        # whether it is overfitting (data-limited) or underfitting (capacity).
+        train_out.update(evaluate(model, songs, W, train_index, micro))
     n = sum(p.numel() for p in model.parameters())
     return (out, n, model) if return_model else (out, n)
 
@@ -365,6 +369,14 @@ def main():
     ap.add_argument("--split", type=int, default=0,
                     help="which 16 songs are held out: perm[16*k:16*(k+1)]. Split 0 is the "
                          "one every earlier result used; others are disjoint from it")
+    ap.add_argument("--folds", type=int, default=0,
+                    help="cross-validation: split all songs into this many folds and hold out "
+                         "--fold; overrides --split")
+    ap.add_argument("--fold", type=int, default=0)
+    ap.add_argument("--train-songs", type=int, default=0,
+                    help="train on only the first N training songs (learning curve); 0 = all")
+    ap.add_argument("--train-eval", type=int, default=16,
+                    help="also score this many training songs, for the train/val gap; 0 = off")
     ap.add_argument("--seed0", type=int, default=0, help="first seed, so new seeds can be added")
     ap.add_argument("--out", default="data/arch_compare.json")
     ap.add_argument("--save-logp", default=None, metavar="DIR",
@@ -374,11 +386,22 @@ def main():
 
     songs = load_all()
     perm = np.random.default_rng(0).permutation(len(songs))
-    k = args.split
-    val_ids = perm[16 * k:16 * (k + 1)]
-    tr_ids = np.concatenate([perm[:16 * k], perm[16 * (k + 1):]])
+    if args.folds:
+        k = f"cv{args.folds}.{args.fold}"
+        parts = np.array_split(perm, args.folds)
+        val_ids = parts[args.fold]
+        tr_ids = np.concatenate([p for i, p in enumerate(parts) if i != args.fold])
+    else:
+        k = args.split
+        val_ids = perm[16 * k:16 * (k + 1)]
+        tr_ids = np.concatenate([perm[:16 * k], perm[16 * (k + 1):]])
+    if args.train_songs:
+        tr_ids = tr_ids[:args.train_songs]
+    # Fixed subset of the training songs, scored like held-out songs.
+    tr_eval_ids = tr_ids[:args.train_eval] if args.train_eval else []
     seeds_used = list(range(args.seed0, args.seed0 + args.seeds))
-    print(f"split {k}  seeds {seeds_used}  val songs: {len(val_ids)}\n")
+    print(f"split {k}  seeds {seeds_used}  val songs: {len(val_ids)}  "
+          f"train songs: {len(tr_ids)}\n")
     print(f"{'arch':<12} {'W':>3} {'params':>9} {'acc':>6} {'h':>6} {'song':>6} "
           f"{'exact':>6} {'flips':>6} {'e':>6}   per-seed song / e")
     print("-" * 96)
@@ -391,7 +414,7 @@ def main():
         epochs = int(m.group(3)) if m.group(3) else args.epochs
         va_index = {int(si): make_index(songs, [si], W) for si in val_ids}
         va_index = {i: v for i, v in va_index.items() if len(v) >= 64}
-        per_seed = []
+        per_seed, train_seeds = [], []
         t0 = time.time()
 
         def save(s, raw):
@@ -417,15 +440,21 @@ def main():
             npar = sum(p.numel() for p in model.parameters())
         else:
             tr = make_index(songs, tr_ids, W)
+            tr_eval = {int(si): make_index(songs, [si], W) for si in tr_eval_ids}
+            tr_eval = {i: v for i, v in tr_eval.items() if len(v) >= 64} or None
             for s in seeds_used:
-                raw = {}
-                out, npar = run(kind, W, songs, epochs, s, tr, va_index, raw=raw)
+                raw, tr_out = {}, {}
+                out, npar = run(kind, W, songs, epochs, s, tr, va_index, raw=raw,
+                                train_index=tr_eval, train_out=tr_out)
                 per_seed.append(out)
+                train_seeds.append(tr_out)
                 save(s, raw)
         mins = (time.time() - t0) / 60
         res[spec] = {"W": W, "epochs": epochs, "split": k, "params": npar,
+                     "train_songs": len(tr_ids),
                      "seed_ids": list(range(4)) if kind == "gru-saved" else seeds_used,
-                     "minutes": round(mins, 1), "seeds": per_seed}
+                     "minutes": round(mins, 1), "seeds": per_seed,
+                     "train_seeds": train_seeds}
         M = lambda k: np.mean([[v[k] for v in o.values()] for o in per_seed])
         Cnt = lambda f: np.mean([sum(f(v) for v in o.values()) for o in per_seed])
         seeds = " ".join(f"{np.mean([v['song'] for v in o.values()]):.3f}/"
@@ -433,6 +462,11 @@ def main():
         print(f"{spec:<12} {W:3d} {npar:9,} {M('acc'):6.3f} {M('h'):6.3f} {M('song'):6.3f} "
               f"{Cnt(lambda v: v['song'] > 0.95):6.1f} {Cnt(lambda v: v['flip']):6.1f} "
               f"{M('e'):+6.2f}   {seeds}   [{mins:.0f} min]", flush=True)
+        if any(train_seeds):
+            TM = lambda k: np.mean([[v[k] for v in o.values()] for o in train_seeds if o])
+            print(f"{'  (train)':<12} {'':>13} {TM('acc'):6.3f} {TM('h'):6.3f} {TM('song'):6.3f} "
+                  f"{'':>13} {TM('e'):+6.2f}   scored on {len(next(o for o in train_seeds if o))} "
+                  f"training songs", flush=True)
         Path(ROOT / args.out).write_text(json.dumps(res, indent=1))
     print(f"\nexact: songs >0.95 of {len(va_index)}; flips: songs decoded to the 1<->5 "
           "inversion; e: mean evidence for the truth over the flip (nats)")
