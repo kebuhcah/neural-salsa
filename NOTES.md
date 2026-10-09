@@ -5,7 +5,14 @@
 **Goal.** Predict the salsa **1** and **5** counts from audio. Secondary goal:
 learn NN training and interpretability on a problem with real structure.
 
-**Current best result.** An ensemble of 4 gru W=24 seeds plus 4 `beatseq`
+**Most reliable number: 6-fold cross-validation** (section 14e). beatseq
+W=48 decodes **0.811** song-level over 100 held-out songs (65 above 0.95; 0.877
+on the 73 without annotated shifts). It scores 0.99 per window on its own
+training songs against 0.68 held out: heavily overfit, and still improving
+with more training songs. The split-based numbers below came from 32 songs
+that turned out easier than average.
+
+**Best result on the two fixed splits.** An ensemble of 4 gru W=24 seeds plus 4 `beatseq`
 W=48 seeds (section 14b): 0.951 on split 0 with no flips, 0.905 on a second
 split of 16 different songs. The two models have different blind spots --
 beatseq systematically flips Ocairi and Un Dia Yo, single gru seeds flip
@@ -45,6 +52,12 @@ notching it out fixes every seed (section 13a).
   the phase is a property of the *song*.
 
 ### What is open
+- **Overfitting** (section 14e): 0.99 per window on training songs vs 0.68
+  held out. Regularisation and augmentation (band dropout, pitch/tempo
+  shift, early stopping), pretrained features, more labelled songs. Judge
+  everything by 6-fold CV against 0.811.
+- Miami and El Bembe: models are confidently 4 beats off (Miami 7% per
+  window, below chance) -- check the annotations by ear.
 - Why beatseq systematically flips Ocairi and Un Dia Yo while the gru does
   not, and why every model fails El Bembe (section 14b).
 - Shift songs: five held-out songs have annotated 4-beat shifts and they are
@@ -1454,6 +1467,67 @@ log `data/short.log`):
   64%): beatseq is more confident but slightly less accurate per window,
   as in 14a. Some cells are non-monotonic (Federico Boogaloo 58/71/54/69%)
   -- several points of seed noise per cell.
+
+### 14e. Cross-validation, train/val gap and learning curve
+
+Every comparison so far rested on two splits of 16 songs. `arch_compare.py
+--folds 6 --fold k` holds out one of six folds over all songs; every run also
+scores 16 of its own training songs; `--train-songs N` trains on fewer
+songs. beatseq W=48, 2 seeds per fold, plus 21- and 42-song runs (1 seed
+each). Results in `data/cv/`, report `cv_report.py data/cv`, log
+`data/cv.log`. One song is too short to score, so 100 held-out songs.
+
+**The real held-out number is lower than the splits suggested:**
+
+| | value |
+|---|---|
+| song-level (100 songs, mean over seeds) | **0.811** (fold range 0.765-0.900) |
+| songs > 0.95 | 65 / 100 |
+| flips per seed | 18 |
+| per-window / which-half | 0.677 / 0.719 |
+| without the 27 shift songs | song-level 0.877, 61/73 > 0.95, 9 flips |
+
+The 32 songs of splits 0 and 1 (0.953 / 0.851) were easier than average.
+About 1 in 6 shift-free songs is still decoded to the wrong phase.
+
+**It overfits heavily -- capacity is not the limit:**
+
+| | per-window | which-half | song-level | median e |
+|---|---|---|---|---|
+| training songs | **0.992** | 0.994 | 0.953 | +9.2 |
+| held-out songs | 0.677 | 0.719 | 0.811 | +4.1 |
+
+(Training song-level is capped by shift songs among them.) A model that
+memorises its training songs this completely is not short of parameters;
+the levers are regularisation, augmentation and data.
+
+**More data helps, with no sign of a plateau** (held-out, mean over folds,
+seed 0 at every size):
+
+| training songs | per-window | song-level | median e | training per-window |
+|---|---|---|---|---|
+| 21 | 0.559 | 0.742 | +2.14 | 0.977 |
+| 42 | 0.573 | 0.748 | +2.25 | 0.991 |
+| 84 | 0.692 | 0.822 | +4.84 | 0.990 |
+
+The step from 42 to 84 songs is large; the flat 21 -> 42 is odd and probably
+reflects the fixed step budget (smaller sets are repeated more and
+memorised as completely). Three points, one seed: the direction is clear,
+the shape is not.
+
+**Hardest held-out songs.** Six shift-free songs decode fully flipped:
+Miami, Volando Entre Tus Brazos, Como Te Quise Yo, Todo Tiene Su Final, Otra
+Oportunidad, Si Supieras -- Volando and Otra Oportunidad were also the worst
+in section 11. **Miami looks like an annotation problem**: per-window 7%,
+below chance, with e -6.5 -- confidently and consistently 4 beats off, the
+pattern of a label offset by 4 more than of a model error. El Bembe is
+similar (12%, e -4.1). Both worth a listen.
+
+**Consequences.** CV (0.811) is now the baseline for anything new. Next
+levers, by the evidence: regularisation and augmentation (band dropout,
+pitch/tempo shift, stronger dropout, early stopping) for the 0.99 vs 0.68
+gap; more labelled songs, since the curve is still rising; pretrained
+features, which suit exactly this small-data, overfitting regime.
 
 **Best configuration so far: 4 gru W=24 seeds + 4 beatseq W=48 seeds.** The
 cost is mostly the gru (21 min per seed vs 6 for beatseq). Caveats: two
