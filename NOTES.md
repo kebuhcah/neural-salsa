@@ -1908,6 +1908,16 @@ removing the bass collapses which-half too (e.g. 0.18): there the bass was
 also the 1-vs-5 cue. So in the augmented models **the bass anchors where the
 beats are; the piano decides which half is the 1.**
 
+How "half right, beat wrong" is possible: each window independently names
+its last beat's count, and nothing makes the answers consistent. Without the
+bass, seed 0 calls 3 "2" and 7 "6"; seed 1 calls every even beat the odd
+beat before it (2 -> 1, 4 -> 3, 6 -> 5, 8 -> 7). The 1 and the 5 stay put,
+every answer stays in the right half, but neighbouring beats merge -- an
+error no listener tracking a count would make. Song-level decoding enforces
+one consistent count: seed 0 (6 of 8 counts right) decodes correctly; seed
+1's odd and even beats vote for two phases one beat apart, a near tie it
+loses.
+
 **Solos** mostly fail, as expected for single canonical parts far from real
 mixes. Exception: solo piano, which augmented seed 1 decodes at song level
 (which-half 0.89). Solo clave, cowbell, cáscara and güiro give nothing
