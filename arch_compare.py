@@ -208,7 +208,7 @@ class BeatSeq(nn.Module):
     change the computation either.
     """
 
-    def __init__(self, W, d=128, layers=2, heads=4, n_chroma=0):
+    def __init__(self, W, d=128, layers=2, heads=4, n_chroma=0, keep_freq=False):
         super().__init__()
 
         def blk(i, o):
@@ -222,7 +222,16 @@ class BeatSeq(nn.Module):
         # per beat rather than sharing the convolution.
         self.cenc = (nn.Sequential(nn.Linear(FPB * n_chroma, 64), nn.ReLU())
                      if n_chroma else None)
-        self.proj = nn.Linear(64 * 2 + (64 if n_chroma else 0), d)
+        # keep_freq: do not average the frequency axis away. The mean over
+        # frequency keeps *that* there is harmonic texture but not *where* in
+        # the spectrum -- i.e. which notes -- so chords and chord changes are
+        # invisible (NOTES 14g). Instead squeeze channels 64 -> 16 with a 1x1
+        # conv and flatten all 2 x 16 time-frequency positions; the parameter
+        # count stays close to the original.
+        self.keep_freq = keep_freq
+        self.squeeze = nn.Sequential(nn.Conv2d(64, 16, 1), nn.ReLU()) if keep_freq else None
+        enc_out = 16 * 2 * 16 if keep_freq else 64 * 2
+        self.proj = nn.Linear(enc_out + (64 if n_chroma else 0), d)
         self.pos = nn.Parameter(torch.randn(W, d) * 0.02)
         layer = nn.TransformerEncoderLayer(d, heads, 4 * d, dropout=0.1,
                                            batch_first=True, norm_first=True)
@@ -235,10 +244,12 @@ class BeatSeq(nn.Module):
         beats = x.reshape(B * self.W, 1, FPB, x.shape[-1])       # one image per beat
         if self.cenc is not None:
             mel, chroma = beats[..., :-self.n_chroma], beats[..., -self.n_chroma:]
-            z = torch.cat([self.enc(mel).mean(3).flatten(1),
-                           self.cenc(chroma.flatten(1))], 1)      # [B*W, 128 + 64]
         else:
-            z = self.enc(beats).mean(3).flatten(1)              # [B*W, 128]
+            mel, chroma = beats, None
+        h = self.enc(mel)                                        # [B*W, 64, 2, F]
+        z = self.squeeze(h).flatten(1) if self.keep_freq else h.mean(3).flatten(1)
+        if chroma is not None:
+            z = torch.cat([z, self.cenc(chroma.flatten(1))], 1)
         z = self.tf(self.proj(z).reshape(B, self.W, -1) + self.pos)
         return self.head(self.drop(z[:, -1])), None, None       # target is the last beat
 
@@ -250,6 +261,8 @@ def make_model(kind, W):
         return BeatSeq(W)
     if kind == "beatseqc":
         return BeatSeq(W, n_chroma=12)                           # needs --input mel+chroma
+    if kind == "beatseqf":
+        return BeatSeq(W, keep_freq=True)                        # mel, frequency kept
     return Model(kind, W * FPB)
 
 
