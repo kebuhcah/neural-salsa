@@ -44,3 +44,5 @@ bembe_stems.py
 bembe_eval.py
 bembe_train.py
 data/bembe_models/
+data/beatmachine/
+data/probe_models/
