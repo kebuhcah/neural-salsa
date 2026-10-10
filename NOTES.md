@@ -1696,8 +1696,30 @@ Paired per song against the log-mel baseline:
 - **Neither moves song-level beyond noise** (13 songs below 0.5 in all
   three). Both fix Otra Oportunidad; keep-frequency half-fixes Si Supieras
   and Todo Tiene Su Final. Both break **Gotas De Lluvia** on both seeds --
-  worth a look: the baseline may have been lucky, or the song relies on a
-  cue the new inputs dilute.
+  which turns out to be an annotation error (14i).
+
+### 14i. Gotas De Lluvia: a missing shift in the annotation
+
+Every harmony-aware variant flips Gotas De Lluvia on both seeds (log-mel
+with frequency kept, log-mel + chroma, chroma alone: song-level 0.00), while
+the frequency-averaged baseline decodes it perfectly. It has no annotated
+shifts and the most negative harmonic mark in the corpus (-0.099): per
+32 beats, the chords change on the annotated 1 until ~1:39 and on the
+annotated 5 for the rest of the song (down to -0.32), at 8-count resolution
+switching between the 8-counts starting 1:33.9 and 1:36.7.
+
+**By ear** (listener, spoken count): 0:10-0:21 the annotated 1 sounds right;
+around 1:30-1:45 there is a break -- the piano drops out, leaving horns and
+percussion; by 2:24-3:00 the 1 and 5 sound flipped and the annotation
+backwards. So the annotation is missing a **4-beat shift in the break**
+(~1:34-1:42; the exact beat needs an ear, since the harmony is quiet
+there). The harmony-aware models were right from the break on and were
+scored as failing; the baseline matched the label by ignoring the harmony.
+
+Consequence: some "model failures" are label failures, so far found only
+one song at a time by ear. Gotas has a recognisable signature -- harmony
+marking the 1 for a long stretch, then the 5, with no annotated shift --
+that can be searched for across the corpus.
 
 **Next.** Song-level differences between all these variants are about one
 seed's flips, and they fail on different songs: ensembling seeds across
