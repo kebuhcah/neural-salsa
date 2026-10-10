@@ -56,10 +56,10 @@ notching it out fixes every seed (section 13a).
   held out. Regularisation and augmentation (band dropout, pitch/tempo
   shift, early stopping), pretrained features, more labelled songs. Judge
   everything by 6-fold CV against 0.811.
-- Do the models underweight the piano? In El Bembe they never follow the
-  annotated 2:43 shift, even after ~3:10 when the piano marks the new 1 for
-  a listener (annotation confirmed by ear, section 14b); in Amor y Control
-  the listener also names the piano. Stem test on El Bembe after 3:10.
+- **The models cannot read the piano** (section 14f): in El Bembe the piano
+  alone still leads them to the wrong phase, while for the listener it is
+  the best cue; drums mislead them throughout. Try inputs that expose
+  melody and harmony: chroma (`build_chroma.py`) or pretrained features.
   (Miami's annotation also checks out by ear: a genuine model failure, 14e.)
 - Why beatseq systematically flips Ocairi and Un Dia Yo while the gru does
   not, and why every model fails El Bembe (section 14b).
@@ -1552,6 +1552,65 @@ though the middle of the song is hard to follow, with the listener making
 not just 1<->5 errors but others too. So Miami is a genuine, confident model
 failure on a song that is hard by ear in places. El Bembe (12%, e -4.1)
 still to check.
+
+### 14f. El Bembe: drums mislead, and the models cannot read the piano
+
+Annotation confirmed by ear from ~3:10 (section 14b). **The models are wrong
+through most of the song, not only around the shift** (saved split-1
+predictions, 4 seeds per model, window-end time):
+
+| | 0:00-2:00 | 2:00-2:40 | after 2:43 |
+|---|---|---|---|
+| windows with the correct phase | 0-21% | **45-71%** | ~20-35% |
+
+They agree with the annotation only in the 40 s before the shift; in
+phase terms the annotation runs A then A+4 from 2:43, the models A+4 then A
+from ~2:00. **By ear** (listener): the first minute is hard too -- no piano,
+mostly clave, drums and some horns; the clave alone cannot settle it (2-3
+or 3-2), and it sounds like a rumba clave rather than son clave. Stem
+loudness lines up roughly: the models are right only in the one stretch with
+the "other" stem (piano/horns) up and the drums down (2:00-2:40), wrong
+where drums dominate (the intro, the 2:43 percussion solo) -- but also wrong
+after 3:10 with the piano loud.
+
+**Stem test.** Models trained with El Bembe held out and saved (split 1;
+beatseq W=48 x 4, gru W=24 x 2; `bembe_train.py`), the song Demucs-separated
+and features rebuilt per variant (`bembe_stems.py`, verified bit-identical
+on the original), scored per section (`bembe_eval.py`; all three
+untracked: they use the grid decoder and licensed audio). Mean e (% windows
+correct), window-end time:
+
+| input | 0:20-2:00 drums | 2:05-2:40 piano up | 3:20-4:20 piano |
+|---|---|---|---|
+| beatseq, full | -5.7 (10%) | +2.7 (64%) | -3.6 (30%) |
+| beatseq, without drums | **-1.1** (14%) | +3.5 (66%) | -2.1 (36%) |
+| beatseq, without bass | -5.5 (12%) | **-3.3** (25%) | -5.9 (7%) |
+| beatseq, "other" only | -1.2 (12%) | -5.6 (9%) | **-2.9** (16%) |
+| gru, full | -3.3 (10%) | +0.6 (61%) | -3.7 (14%) |
+| gru, without drums | **-0.6** (25%) | +0.8 (58%) | -0.9 (30%) |
+| gru, without vocals | -2.0 (22%) | **-3.1** (27%) | -4.6 (6%) |
+| gru, "other" only | +1.3 (47%) | -0.1 (36%) | **-1.8** (15%) |
+
+- **Drums mislead throughout.** Removing them improves every section for
+  both models, most in the drum-heavy intro. Where the listener hears
+  genuine ambiguity, the models are not uncertain: percussion confidently
+  pushes them to the wrong phase -- the Amor y Control pattern (13a-c).
+- **The models cannot read the piano's cue.** In the piano section, given
+  the piano (and horns) alone, both models still choose the wrong phase.
+  It is not only that they underweight the piano: what tells a listener the
+  1 is not what these models extract from it. No single stem removal makes
+  that section right.
+- **Where they were right, bass and vocals carried it** (2:05-2:40): removing
+  either flips both models; the piano alone points wrong there too.
+
+Caveats: one song; Demucs "other" includes the horns; stem removal is a
+large distribution shift; 2-4 seeds.
+
+**Implication.** The listener's cue -- the piano's melody or chord progression
+across the 8-count -- is not something these models have learned to read
+from log-mel. Inputs designed for it: chroma (`build_chroma.py`, written for
+exactly this after the listener's Amor y Control report), or pretrained
+music features.
 
 **Consequences.** CV (0.811) is now the baseline for anything new. Next
 levers, by the evidence: regularisation and augmentation (band dropout,

@@ -40,3 +40,7 @@ stem_when.py
 amor_harmony.py
 amor_harmony_period.py
 data/ens/
+bembe_stems.py
+bembe_eval.py
+bembe_train.py
+data/bembe_models/
