@@ -5,7 +5,7 @@
 **Goal.** Predict the salsa **1** and **5** counts from audio. Secondary goal:
 learn NN training and interpretability on a problem with real structure.
 
-**Most reliable number: 6-fold cross-validation** (section 14e). beatseq
+**Most reliable number: 6-fold cross-validation.** Best so far (section 14k): log-mel + chroma with transposition augmentation, **0.859-0.860** song-level over 100 held-out songs, 8-11 fully failed. The earlier baseline (section 14e): beatseq
 W=48 decodes **0.811** song-level over 100 held-out songs (65 above 0.95; 0.877
 on the 73 without annotated shifts). It scores 0.99 per window on its own
 training songs against 0.68 held out: heavily overfit, and still improving
@@ -1783,6 +1783,44 @@ device; it is also a cue a model could learn.
 No label corrections are applied. If a confirmed error turns up, a tracked
 corrections file with an "as annotated / corrected" switch would keep old
 results comparable.
+
+### 14k. Augmentation: transposition works, masking does not
+
+Training-only augmentation of log-mel + chroma (beatseqc W=48), `arch_compare
+--aug`: **transposition** shifts each example by -5..+6 semitones (p 0.8) --
+chroma rolled exactly, the mel spectrum resampled along frequency at the HTK
+mel-bin centres (tested: tones land on the expected bins, chroma rotates by
+the same k); **masking** blanks two random mel bands of up to 24 bins
+(SpecAugment style). 6-fold CV, 2 seeds, same folds (`data/cv_aug_*`):
+
+| | per-window | which-half | song-level | songs < 0.5 | train per-window |
+|---|---|---|---|---|---|
+| log-mel (baseline) | 0.677 | 0.719 | 0.811 | 13 | 0.992 |
+| + chroma | 0.715 | 0.745 | 0.822 | 13 | 0.992 |
+| + chroma, masking | 0.728 | 0.752 | 0.847 | 12 | **0.992** |
+| **+ chroma, transposition** | 0.771 | 0.789 | 0.859 | **8** | 0.981 |
+| + chroma, both | **0.778** | **0.795** | **0.860** | 11 | 0.968 |
+
+Paired per song:
+- **Transposition vs the log-mel baseline: song-level +0.048, 14 songs
+  better / 4 worse (Wilcoxon p 0.035)**; per-window +0.094 (71/13, p < 0.001);
+  songs fully failed 13 -> 8. The first significant song-level gain.
+- Transposition vs unaugmented + chroma: per-window +0.056, which-half +0.043
+  (both p < 0.001); song-level +0.037 (p 0.12).
+- **Masking alone does nothing measurable** (+0.013 per window, p 0.16) and
+  does not touch overfitting (training stays 0.992).
+- Both together: marginally better per window than transposition alone,
+  not at song level (11 vs 8 songs failed -- within noise).
+
+Why transposition: every song is in one key, so with ~85 training songs a
+model can memorise register- and key-specific patterns. Transposing forces
+it onto how the harmony moves. The beat machine probe (section 15) shows the
+failure it fixes directly: an unaugmented model is perfect on a synthetic
+line-up in C and loses the beat in most other keys.
+
+**New default: log-mel + chroma with transposition** (masking optional).
+Fixed on both seeds vs the baseline include Si Supieras and Todo Tiene Su
+Final; the train/held-out gap shrinks from ~0.31 to ~0.21 per window.
 
 **Next.** Song-level differences between all these variants are about one
 seed's flips, and they fail on different songs: ensembling seeds across
