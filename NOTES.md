@@ -1341,6 +1341,18 @@ models detect the shift but sit 4 beats off throughout. Either a genuine
 flip like Amor y Control, or an annotation off by 4 for the whole song --
 a listener can tell by checking where the 1 falls before 2:43.
 
+*Correction (finer look, 8-beat steps, both models x 4 seeds):* the models do
+**not** detect the shift. Just before it (windows ending 2:20-2:40) both
+agree with the annotation (gru up to +5, beatseq up to +8); at 2:43 e flips
+instantly to strongly negative (gru -3.6, beatseq -8.8) -- exactly when the
+label jumps, although the audio is continuous -- and stays negative through
+the rest of the section, including after ~3:10. So the models carry the
+pre-shift phase straight through. The segment means above hid this, because
+the first segment is mixed. **By ear** (listener): 2:43-3:10 is hard to call
+-- a percussion solo, then instruments join -- and only at ~3:10 does the
+piano come in strongly and mark the 1 and 5. Whether the annotation's shift
+is right turns on whether its 1 matches the piano from 3:10.
+
 **Next:** a decoder that allows a rare +4 phase jump (c -> c+4), re-run on the
 saved predictions. It should recover the four shift songs the models already
 get right, leaving El Bembe as the only real failure. (Tried in 14c: it does
