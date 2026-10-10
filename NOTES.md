@@ -1721,6 +1721,43 @@ one song at a time by ear. Gotas has a recognisable signature -- harmony
 marking the 1 for a long stretch, then the 5, with no annotated shift --
 that can be searched for across the corpus.
 
+### 14j. Corpus scan for missing shifts: only Gotas De Lluvia
+
+`label_scan.py`: per 8-count, the harmonic mark relative to the annotated
+counts; for each song, the split point where the mark flips most clearly
+between the annotated 1 and 5 (at least 6 eight-counts per side, opposite
+signs, Welch t). **Gotas De Lluvia ranks first by a wide margin** (|t| 11.3,
+switch at 1:42 -- the break heard by ear; next 6.6), validating the scan.
+Every other candidate's post-switch mark is -0.06 or weaker, and maximising
+over split points inflates |t| on its own.
+
+**Cross-check against the CV models** (song-level, mean of 2 seeds): a
+missing shift should make harmony-aware models disagree with the label
+while the harmony-blind baseline agrees.
+
+| song | log-mel | +chroma | keep-freq | chroma only |
+|---|---|---|---|---|
+| **Gotas De Lluvia** | **1.00** | **0.00** | **0.00** | **0.00** |
+| Otra Oportunidad | 0.00 | 1.00 | 1.00 | 1.00 |
+| Si Supieras | 0.00 | 1.00 | 0.50 | 1.00 |
+| No Me Celes | 0.50 | 1.00 | 1.00 | 1.00 |
+| La Vida Es Un Carnaval, Ni Fio..., El Cantante, Dile A Ella, I Love Salsa | 1.00 | 1.00 | 1.00 | 0.50-1.00 |
+
+- **Only Gotas has the signature.** For every other candidate the
+  harmony-aware models agree with the annotation, often better than the
+  baseline: their section-level changes in where chords move are musical
+  variation, not missing shifts.
+- **No Me Celes**: chords change on the annotated 5 in 96% of 8-counts by
+  this measure, yet chroma alone finds the annotated 1 -- "where the chords
+  change" is only part of what the models read from harmony.
+- **Blind spot**: the scan cannot see errors in sections without harmony
+  (percussion breaks, a cappella, intros like El Bembe's), so it bounds only
+  harmony-visible errors. Among those: one clear miss in 101 songs.
+
+Next: a tracked label-corrections file, applied at load time with an
+"as annotated / corrected" switch; Gotas De Lluvia first, once the exact
+beat of the shift (~1:34-1:42) is picked by ear.
+
 **Next.** Song-level differences between all these variants are about one
 seed's flips, and they fail on different songs: ensembling seeds across
 variants (which removed minority flips in 14b) is likelier to pay than a
