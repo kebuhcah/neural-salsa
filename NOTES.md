@@ -1612,6 +1612,64 @@ from log-mel. Inputs designed for it: chroma (`build_chroma.py`, written for
 exactly this after the listener's Amor y Control report), or pretrained
 music features.
 
+### 14g. Harmony: present in most songs, unused by the models, partly usable with chroma
+
+Corpus chroma built for the first time (`build_chroma.py`, all 101 songs,
+`data/chroma/`; the beat grids agree with the log-mel features in every
+song).
+
+**Does harmony mark the 1?** `harmony_contrast.py`: per song, chroma change
+going into the 1 (across the 8 -> 1 boundary) minus going into the 5, at
+half-8-count resolution. In **75% of songs the harmony changes more at the
+1**; median +0.0095 (1 - cosine), range -0.099 .. +0.099. (A first version
+compared "how different are the halves" with "how different is a half from
+its repeat"; it scored chord changes once per 8-count, at the 1, as
+uninformative, and was replaced before use.)
+
+**Do the models use it?** No: across 100 held-out songs (6-fold CV), the
+strength of the mark is uncorrelated with held-out performance (Spearman
+-0.03 to +0.02 on every measure), and the top third by mark is no easier.
+Several fully failed songs have strong marks (Si Supieras 77th percentile,
+Todo Tiene Su Final 76th, Volando Entre Tus Brazos 68th). Likely reasons:
+both architectures average the frequency axis away, discarding which
+notes play; the 2048-point STFT blurs bass pitch; and with ~85 songs,
+percussion and bass rhythm plus memorisation are the easier route.
+
+**Chroma as input** (6-fold CV, 2 seeds, same folds; `--input chroma` with
+beatseq, `--input mel+chroma` with `beatseqc` -- a small dense chroma branch
+per beat; results `data/cv_chroma/`, `data/cv_melchroma/`, paired
+comparison `cv_compare.py`):
+
+| input | per-window | which-half | song-level | > 0.95 | flips/seed | train per-window |
+|---|---|---|---|---|---|---|
+| log-mel (baseline) | 0.677 | 0.719 | 0.811 | 65 | 18.0 | 0.992 |
+| chroma only | 0.527 | 0.615 | 0.755 | 57 | 21.5 | 0.856 |
+| **log-mel + chroma** | **0.715** | **0.745** | **0.822** | **68** | **17.0** | 0.992 |
+
+Paired per song, log-mel + chroma vs log-mel:
+
+| | change | songs better / worse | Wilcoxon |
+|---|---|---|---|
+| per-window | **+0.038** | 55 / 30 | **p 0.004** |
+| which-half | +0.026 | 50 / 36 | p 0.048 |
+| song-level | +0.011 | 10 / 9 | p 0.65 |
+
+- **Chroma reliably helps per window**, and the which-half gain is larger
+  where harmony marks the 1 strongly (+0.042, top third) than weakly (+0.024,
+  bottom third) -- the predicted direction, not separately tested.
+- **It fixes two fully failed songs on both seeds: Si Supieras and Otra
+  Oportunidad** -- and chroma *alone* fixes them too, so it is the harmony.
+- **Song-level is a wash**: 13 songs below 0.5 before and after; new
+  failures elsewhere are mostly one of two seeds flipping, plus Gotas De
+  Lluvia on both -- about the noise level with 2 seeds.
+- **Harmony alone carries a lot**: chroma-only is 0.527 per window (chance
+  0.125) and overfits far less (0.86 on training songs vs 0.99).
+
+Verdict: the representation theory is partly confirmed -- given harmony
+explicitly, the models use it, significantly per window and on songs where
+harmony was the missing cue -- but it does not yet become a reliable
+song-level gain.
+
 **Consequences.** CV (0.811) is now the baseline for anything new. Next
 levers, by the evidence: regularisation and augmentation (band dropout,
 pitch/tempo shift, stronger dropout, early stopping) for the 0.99 vs 0.68
