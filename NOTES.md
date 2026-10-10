@@ -103,7 +103,7 @@ notching it out fixes every seed (section 13a).
     .venv/bin/python context_sweep.py --help   # window-length sweep
     .venv/bin/python validate_halfsim.py       # out-of-sample predictor test
 
-See `LISTENING.md` for per-song difficulty with YouTube links, and section 15
+See `LISTENING.md` for per-song difficulty with YouTube links, and section 16
 for the repo layout and the npz data contract.
 
 ---
@@ -1839,7 +1839,76 @@ splits of 16 songs; the remaining differences are a few songs.
 
 ---
 
-## 15. What is in this repo
+## 15. Beat machine probe: what the models follow
+
+The Salsa Beat Machine (salsabeatmachine.org; source urish/beat-machine)
+plays canonical salsa parts from one-shot samples. `beatmachine.py`
+reimplements its playback offline from the site's pattern XML and sample
+sprite (kept locally in `data/beatmachine/`, never committed: no licence,
+used with the owner's OK), so any line-up can be rendered with **the count of
+every beat known exactly**. Checked: son clave lands on 2, 3 | 5, 6&, 8 (2-3);
+every piano/bass sample attack within 1 ms of its index; feature code
+bit-identical to `build_features` / `build_chroma` on real songs.
+
+`probe_beatmachine.py` renders 48 eight-counts per configuration (180 bpm,
+5 ms jitter) and scores models trained on **all** songs (`train_full.py`,
+`data/probe_models/`, 2 seeds each): log-mel + chroma **with**
+transposition + masking, the same **without** augmentation, and log-mel only
+without augmentation. Default line-up (instructor excluded): son clave,
+complex cowbell, conga tumbao, piano montuno I-IV-V-IV, bass tumbao
+I-IV-V-IV, cáscara, güiro. The conga tumbao and güiro repeat every 4 beats --
+**symmetric**, so they cannot tell the 1 from the 5 by construction; moving
+them changes nothing, and their "on 5" rows equal the full line-up exactly
+(a sanity check that holds).
+
+**Keys** -- full line-up, song-level decodes correct out of 12 keys:
+
+| | augmented (+chroma) | unaugmented (+chroma) | log-mel only |
+|---|---|---|---|
+| seed 0 | **12** | 9 | 12 |
+| seed 1 | **11** | 7 | 9 |
+
+Unaugmented models lose the phase in several keys -- a one-beat (not 1-vs-5)
+slip in the log-mel model's case. Transposition fixes it, the synthetic
+counterpart of its gain on real songs (14k).
+
+**Conflict: one part moved 4 beats** -- share of windows following the moved
+part (seed 0 / seed 1):
+
+| moved | augmented | unaugmented +chroma | log-mel only |
+|---|---|---|---|
+| clave (2-3 -> 3-2) | **0.00 / 0.00** | 0.01 / 0.07 | 0.00 / 0.65 |
+| cowbell | 0.00 / 0.00 | 0.13 / 0.07 | 0.00 / 0.46 |
+| timbales | 0.00 / 0.00 | 0.05 / 0.04 | 0.00 / 0.16 |
+| **piano** | **0.68 / 0.49** | 0.36 / 0.30 | 0.00 / 0.00 |
+| **bass** | 0.01 / 0.23 | **0.82 / 0.87** | **0.78 / 0.83** |
+
+- **Unaugmented models follow the bass**: move it 4 beats and they decode the
+  song to the 5. The log-mel models ignore the piano entirely.
+- **The augmented models switched to the piano**: seed 0 follows a moved
+  piano (song decoded to the "5") and ignores a moved bass; seed 1 splits
+  between them. Learning harmony key-independently (chroma + transposition)
+  moved the models toward the listener's own cue (the piano).
+- **Clave direction, cowbell and timbales are ignored** by the augmented
+  models; rumba instead of son clave changes nothing.
+
+**Leave-one-out**: removing the bass hurts every model most (augmented:
+survives on one seed of two; log-mel only: 0-7% per window). Everything else
+can be removed without breaking the augmented models.
+
+**Solos** mostly fail, as expected for single canonical parts far from real
+mixes. Exception: solo piano, which augmented seed 1 decodes at song level
+(which-half 0.89). Solo clave, cowbell, cáscara and güiro give nothing
+usable to any model.
+
+Caveats: synthetic, canonical, sample-based parts; 2 seeds per model type.
+"Piano on 5" makes piano and bass clash harmonically, so it measures which
+part wins, not accuracy. Canonical percussion moved one part at a time is
+ignored here, while real songs' drums mislead (13c, 14f) -- real percussion
+varies and layers in ways these patterns do not, so the two need not
+conflict.
+
+## 16. What is in this repo
 
 Tracked (generic; reads only `data/features/*.npz`):
 
@@ -1880,7 +1949,7 @@ not tied to this dataset.
 
 ---
 
-## 16. Reference notes
+## 17. Reference notes
 
 ### Shift-tolerant loss (Beat This!, ISMIR 2024)
 Model runs at 50 fps (22.05 kHz, hop 441, 128 mels, 30 Hz–10 kHz). Targets are
