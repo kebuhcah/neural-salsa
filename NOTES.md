@@ -1754,9 +1754,24 @@ while the harmony-blind baseline agrees.
   (percussion breaks, a cappella, intros like El Bembe's), so it bounds only
   harmony-visible errors. Among those: one clear miss in 101 songs.
 
+**The Gotas shift, placed by ear** (listener): at ~1:41.0 every instrument
+stops for a beat, two piano notes follow, then the *response* half of a
+call-and-response section begins and the phase feels shifted. The nearest
+beat, 1:40.98 (beat 292), is annotated count 5 -- exactly the form of all 56
+annotated shifts, where the old 5 becomes the new 1 -- and the harmony flips
+in the very next 8-count. The proposed correction: **+4 from beat 292**. The
+listener also suggests the call tends to sit around the 1 and the response
+around the 5 (offered tentatively; untested).
+
+**Shifts usually come at breaks.** Level dip in the two beats before each
+annotated shift, against nearby beats (mean log-mel): **47 of 55 are
+negative**, many strongly (e.g. Vuela Muy Alto 3:25 -1.92, Recoge y Vete 3:30
+-1.66, Cuanto Te Di 1:42 -1.12). The proposed Gotas shift has -0.94 -- in the
+same range. A break followed by a phase change is evidently a common
+arrangement device; it is also a cue a model could learn.
+
 Next: a tracked label-corrections file, applied at load time with an
-"as annotated / corrected" switch; Gotas De Lluvia first, once the exact
-beat of the shift (~1:34-1:42) is picked by ear.
+"as annotated / corrected" switch; Gotas De Lluvia (+4 from beat 292) first.
 
 **Next.** Song-level differences between all these variants are about one
 seed's flips, and they fail on different songs: ensembling seeds across
