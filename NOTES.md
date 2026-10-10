@@ -1696,9 +1696,9 @@ Paired per song against the log-mel baseline:
 - **Neither moves song-level beyond noise** (13 songs below 0.5 in all
   three). Both fix Otra Oportunidad; keep-frequency half-fixes Si Supieras
   and Todo Tiene Su Final. Both break **Gotas De Lluvia** on both seeds --
-  which turns out to be an annotation error (14i).
+  possibly an annotation issue, unconfirmed (14i).
 
-### 14i. Gotas De Lluvia: a missing shift in the annotation
+### 14i. Gotas De Lluvia: a possible missing shift (unconfirmed)
 
 Every harmony-aware variant flips Gotas De Lluvia on both seeds (log-mel
 with frequency kept, log-mel + chroma, chroma alone: song-level 0.00), while
@@ -1710,16 +1710,16 @@ switching between the 8-counts starting 1:33.9 and 1:36.7.
 
 **By ear** (listener, spoken count): 0:10-0:21 the annotated 1 sounds right;
 around 1:30-1:45 there is a break -- the piano drops out, leaving horns and
-percussion; by 2:24-3:00 the 1 and 5 sound flipped and the annotation
-backwards. So the annotation is missing a **4-beat shift in the break**
-(~1:34-1:42; the exact beat needs an ear, since the harmony is quiet
-there). The harmony-aware models were right from the break on and were
-scored as failing; the baseline matched the label by ignoring the harmony.
+percussion; by 2:24-3:00 the 1 and 5 sounded flipped and the annotation
+backwards. That suggested a **missing 4-beat shift in the break**, in which
+case the harmony-aware models would be right from the break on and the
+baseline matched the label only by ignoring the harmony. **On further
+listening the listener is no longer sure there is a shift at all**, so this
+stays a noted possibility, not a correction: the annotation is used as is.
 
-Consequence: some "model failures" are label failures, so far found only
-one song at a time by ear. Gotas has a recognisable signature -- harmony
-marking the 1 for a long stretch, then the 5, with no annotated shift --
-that can be searched for across the corpus.
+Gotas has a recognisable signature -- harmony marking the 1 for a long
+stretch, then the 5, with no annotated shift -- that can be searched for
+across the corpus.
 
 ### 14j. Corpus scan for missing shifts: only Gotas De Lluvia
 
@@ -1752,26 +1752,30 @@ while the harmony-blind baseline agrees.
   change" is only part of what the models read from harmony.
 - **Blind spot**: the scan cannot see errors in sections without harmony
   (percussion breaks, a cappella, intros like El Bembe's), so it bounds only
-  harmony-visible errors. Among those: one clear miss in 101 songs.
+  harmony-visible errors. Among those: at most one candidate in 101 songs,
+  and it is unconfirmed by ear.
 
-**The Gotas shift, placed by ear** (listener): at ~1:41.0 every instrument
-stops for a beat, two piano notes follow, then the *response* half of a
-call-and-response section begins and the phase feels shifted. The nearest
-beat, 1:40.98 (beat 292), is annotated count 5 -- exactly the form of all 56
-annotated shifts, where the old 5 becomes the new 1 -- and the harmony flips
-in the very next 8-count. The proposed correction: **+4 from beat 292**. The
-listener also suggests the call tends to sit around the 1 and the response
-around the 5 (offered tentatively; untested).
+**Where a Gotas shift would be** (listener, first impression): at ~1:41.0
+every instrument stops for a beat, two piano notes follow, then the
+*response* half of a call-and-response section begins and the phase felt
+shifted. The nearest beat, 1:40.98 (beat 292), is annotated count 5 --
+the form of all 56 annotated shifts, where the old 5 becomes the new 1 --
+and the harmony flips in the very next 8-count. **Not applied:** on further
+listening the listener doubts the shift is real. Recorded as a candidate
+(+4 from beat 292) only. The listener also suggested, tentatively, that
+the call tends to sit around the 1 and the response around the 5.
 
 **Shifts usually come at breaks.** Level dip in the two beats before each
 annotated shift, against nearby beats (mean log-mel): **47 of 55 are
 negative**, many strongly (e.g. Vuela Muy Alto 3:25 -1.92, Recoge y Vete 3:30
--1.66, Cuanto Te Di 1:42 -1.12). The proposed Gotas shift has -0.94 -- in the
-same range. A break followed by a phase change is evidently a common
-arrangement device; it is also a cue a model could learn.
+-1.66, Cuanto Te Di 1:42 -1.12). The Gotas candidate has -0.94 -- in the
+same range, which fits a break there but does not establish a shift. A
+break followed by a phase change is evidently a common arrangement
+device; it is also a cue a model could learn.
 
-Next: a tracked label-corrections file, applied at load time with an
-"as annotated / corrected" switch; Gotas De Lluvia (+4 from beat 292) first.
+No label corrections are applied. If a confirmed error turns up, a tracked
+corrections file with an "as annotated / corrected" switch would keep old
+results comparable.
 
 **Next.** Song-level differences between all these variants are about one
 seed's flips, and they fail on different songs: ensembling seeds across
