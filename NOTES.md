@@ -56,9 +56,11 @@ notching it out fixes every seed (section 13a).
   held out. Regularisation and augmentation (band dropout, pitch/tempo
   shift, early stopping), pretrained features, more labelled songs. Judge
   everything by 6-fold CV against 0.811.
-- El Bembe: models are confidently 4 beats off on both sides of its 2:43
-  shift -- check the annotation by ear. (Miami, similar by the numbers,
-  sounds correctly annotated: a genuine model failure, section 14e.)
+- Do the models underweight the piano? In El Bembe they never follow the
+  annotated 2:43 shift, even after ~3:10 when the piano marks the new 1 for
+  a listener (annotation confirmed by ear, section 14b); in Amor y Control
+  the listener also names the piano. Stem test on El Bembe after 3:10.
+  (Miami's annotation also checks out by ear: a genuine model failure, 14e.)
 - Why beatseq systematically flips Ocairi and Un Dia Yo while the gru does
   not, and why every model fails El Bembe (section 14b).
 - Shift songs: five held-out songs have annotated 4-beat shifts and they are
@@ -1351,7 +1353,19 @@ pre-shift phase straight through. The segment means above hid this, because
 the first segment is mixed. **By ear** (listener): 2:43-3:10 is hard to call
 -- a percussion solo, then instruments join -- and only at ~3:10 does the
 piano come in strongly and mark the 1 and 5. Whether the annotation's shift
-is right turns on whether its 1 matches the piano from 3:10.
+is right turns on whether its 1 matches the piano from 3:10. **It does**
+(listener, with the spoken count): the annotation, shift included, is
+right, and El Bembe is a genuine model failure.
+
+Each window is predicted independently, from at most 16 s of audio, so the
+models are not *remembering* the old phase: for minutes after 3:10, window
+after window concludes the pre-shift phase while the piano -- the
+listener's cue -- marks the new one. Whatever the models rely on in that
+section did not move with the phrase. Together with Amor y Control (13a-c,
+where the listener also names the piano as what marks the 1, and the
+models lean on bass and percussion), this suggests the models underweight
+the piano. Testable with the stem tools: remove or isolate the "other"
+stem in El Bembe after 3:10.
 
 **Next:** a decoder that allows a rare +4 phase jump (c -> c+4), re-run on the
 saved predictions. It should recover the four shift songs the models already
