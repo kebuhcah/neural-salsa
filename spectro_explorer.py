@@ -104,8 +104,6 @@ def make_voice(out):
     """
     for word, name in (("one", "voice_one.wav"), ("five", "voice_five.wav")):
         dest = out / name
-        if dest.exists():
-            continue
         if not shutil.which("say") or not shutil.which("afconvert"):
             print("no macOS `say`; the page will use tones for 1 and 5")
             return
@@ -118,7 +116,11 @@ def make_voice(out):
         v = v if v.ndim == 1 else v.mean(1)
         loud = np.flatnonzero(np.abs(v) > 0.02 * np.abs(v).max())
         v = v[loud[0]:loud[-1] + 1]
-        sf.write(dest, 0.9 * v / np.abs(v).max(), sr)
+        # Salsa masters peak near 0 dBFS with loud passages at -5..-8 dB RMS;
+        # the raw words sat at -12 and drowned. Soft saturation raises their
+        # average level several dB at the same peak, without audible clipping.
+        v = np.tanh(4.0 * v / np.abs(v).max()) / np.tanh(4.0)
+        sf.write(dest, 0.95 * v, sr)
 
 
 def voice_leads(out):
@@ -207,7 +209,8 @@ TEMPLATE = r"""<!doctype html><meta charset=utf-8>
   <span class=lbl>go to</span><input id=goto size=6 placeholder="m:ss">
   <span class=lbl id=hov></span>
   <label><input type=checkbox id=count> count 1 and 5 aloud</label>
-  <label class=lbl>voice <input type=range id=vvol min=0 max=1.5 step=0.05 value=0.9 style="width:90px"></label>
+  <label class=lbl>voice <input type=range id=vvol min=0 max=3 step=0.05 value=1.5 style="width:90px"></label>
+  <label><input type=checkbox id=duck checked> duck music under voice</label>
   <span id=status></span>
 </div>
 <div class=row id=bands><span class=lbl>band:</span></div>
@@ -236,7 +239,8 @@ const btn=document.getElementById('play'), st=document.getElementById('status');
 // setting currentTime silently snaps back to zero.
 let ctx,buf,src,hp,lp,playing=false,offset=0,startedAt=0;
 let gains=[]; const muted=D.bands.map(()=>false);
-let voiceGain, voice={}, voiceSrcs=[], nextBeat=0;
+let voiceGain, voice={}, voiceSrcs=[], nextBeat=0, limiter, musicBus;
+const DUCK=0.5;                                     // music level under a word (-6 dB)
 function tone(f){                                   // 120 ms decaying sine
   const n=Math.round(ctx.sampleRate*0.12), b=ctx.createBuffer(1,n,ctx.sampleRate), d=b.getChannelData(0);
   for(let i=0;i<n;i++) d[i]=0.6*Math.sin(2*Math.PI*f*i/ctx.sampleRate)*Math.exp(-i/(n/4));
@@ -247,6 +251,13 @@ async function load(){
   hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=LOF; hp.Q.value=0.7;
   lp=ctx.createBiquadFilter(); lp.type='lowpass';  lp.frequency.value=NY;  lp.Q.value=0.7;
   hp.connect(lp);
+  // Music and voice meet in a limiter, so a loud voice cannot clip; the music
+  // has its own bus so it can be ducked under each spoken word.
+  limiter=ctx.createDynamicsCompressor();
+  limiter.threshold.value=-1; limiter.knee.value=0; limiter.ratio.value=20;
+  limiter.attack.value=0.002; limiter.release.value=0.1;
+  limiter.connect(ctx.destination);
+  musicBus=ctx.createGain(); musicBus.connect(limiter);
   // Per-band mutes. The cut filters can only pass one contiguous range, so
   // "everything except high-mid" is impossible with them. Instead split the
   // signal at the band edges with 8th-order Linkwitz-Riley crossovers (a
@@ -271,10 +282,10 @@ async function load(){
       series(lr8('lowpass',edges[i],rest),later).connect(gn);
       rest=lr8('highpass',edges[i],rest);
     } else rest.connect(gn);
-    gn.connect(ctx.destination); return gn; });
+    gn.connect(musicBus); return gn; });
   // The spoken count bypasses the band filters, so muting a band never mutes it.
   voiceGain=ctx.createGain(); voiceGain.gain.value=+document.getElementById('vvol').value;
-  voiceGain.connect(ctx.destination);
+  voiceGain.connect(limiter);
   for(const [c,f] of [[1,'voice_one.wav'],[5,'voice_five.wav']]){
     try{ const r=await fetch(f); if(!r.ok) throw 0;
       voice[c]=await ctx.decodeAudioData(await r.arrayBuffer()); }
@@ -301,6 +312,8 @@ function halt(){ if(src){ try{src.stop()}catch(e){} src.disconnect(); src=null; 
 const countEl=document.getElementById('count');
 function resetVoice(){
   voiceSrcs.forEach(s=>{ try{s.stop()}catch(e){} }); voiceSrcs=[];
+  if(musicBus){ musicBus.gain.cancelScheduledValues(ctx.currentTime);
+    musicBus.gain.setValueAtTime(1,ctx.currentTime); }
   const t=now(); nextBeat=0;
   while(nextBeat<D.beats.length && D.beats[nextBeat].t<t) nextBeat++;
 }
@@ -314,7 +327,15 @@ function scheduleVoice(){
     const when=startedAt+(b.t-offset)-((D.voiceLead||{})[b.c]||0);
     if(when<ctx.currentTime-0.02) continue;
     const s=ctx.createBufferSource(); s.buffer=voice[b.c]; s.connect(voiceGain);
-    s.start(Math.max(when,ctx.currentTime));
+    const at=Math.max(when,ctx.currentTime), end=at+voice[b.c].duration;
+    s.start(at);
+    if(document.getElementById('duck').checked){    // dip the music for the word only
+      const g=musicBus.gain;
+      g.setValueAtTime(1,Math.max(ctx.currentTime,at-0.015));
+      g.linearRampToValueAtTime(DUCK,at);
+      g.setValueAtTime(DUCK,end);
+      g.linearRampToValueAtTime(1,end+0.04);
+    }
     s.onended=()=>{ voiceSrcs=voiceSrcs.filter(x=>x!==s); };
     voiceSrcs.push(s);
   }
