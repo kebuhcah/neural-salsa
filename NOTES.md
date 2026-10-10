@@ -1896,6 +1896,18 @@ part (seed 0 / seed 1):
 survives on one seed of two; log-mel only: 0-7% per window). Everything else
 can be removed without breaking the augmented models.
 
+**Bass and piano do different jobs** (the two findings above do not
+conflict). Moving a part by 4 beats changes only its 1-vs-5 information --
+its position within the half is unchanged -- so the conflict test isolates
+the which-half decision; removal tests everything the part contributes.
+For the augmented models without the bass, **which-half stays 1.00 on both
+seeds** (per-window 0.75 / 0.36): the piano still decides the 1 vs the 5,
+and what breaks is the beat *position* within the half -- on seed 1 enough
+to throw the song decode off by a non-4 slip. For the unaugmented models,
+removing the bass collapses which-half too (e.g. 0.18): there the bass was
+also the 1-vs-5 cue. So in the augmented models **the bass anchors where the
+beats are; the piano decides which half is the 1.**
+
 **Solos** mostly fail, as expected for single canonical parts far from real
 mixes. Exception: solo piano, which augmented seed 1 decodes at song level
 (which-half 0.89). Solo clave, cowbell, cáscara and güiro give nothing
