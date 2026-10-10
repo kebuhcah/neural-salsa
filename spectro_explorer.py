@@ -199,6 +199,13 @@ TEMPLATE = r"""<!doctype html><meta charset=utf-8>
  #goto{background:#222;color:#ddd;border:1px solid #444;border-radius:4px;padding:4px 6px}
  #cnt{font-size:34px;font-weight:600;min-width:2ch;display:inline-block}
  .lbl{color:#888} #status{color:#fa0}
+ /* Text that changes while playing gets a fixed width and equal-width digits,
+    so the controls after it do not shift as the clock runs or the cursor
+    readout appears. */
+ #cnt,#tpos,#hov{font-variant-numeric:tabular-nums;text-align:left}
+ #cnt{width:1.2em;text-align:center}
+ #tpos{display:inline-block;width:7ch;font-family:ui-monospace,Menlo,Consolas,monospace}
+ #hov{display:inline-block;width:14ch;font-family:ui-monospace,Menlo,Consolas,monospace}
 </style>
 <h2 id=ttl></h2>
 <div id=wrap><img id=spec src="__SLUG__.png"><canvas id=ov></canvas></div>
