@@ -88,11 +88,39 @@ class Net(nn.Module):
         return self.head(x)
 
 
+CHROMA = ROOT / "data/chroma"
+
+
+def load_input(kind="mel"):
+    """Songs with features of the given kind, in load_all()'s order.
+
+    mel         128 log-mel bins (load_all)
+    chroma      12 pitch classes from build_chroma.py, per-song normalised
+    mel+chroma  both, concatenated per frame (128 + 12); trimmed to the beats
+                both cover -- chroma's frame grid can drop a final beat
+    """
+    songs = load_all()
+    if kind == "mel":
+        return songs
+    for s in songs:
+        z = np.load(CHROMA / f"{s['id']}.npz", allow_pickle=True)
+        c = z["feats"].astype(np.float32)
+        c = ((c - c.mean()) / (c.std() + 1e-6)).astype(np.float16)
+        n = min(len(s["counts"]), len(z["counts"]))
+        assert (s["counts"][:n] == z["counts"][:n]).all(), f"beat grids differ for {s['title']}"
+        s["counts"], s["trusted"] = s["counts"][:n], s["trusted"][:n]
+        mel = s["feats"][:n * FPB]
+        s["feats"] = c[:n * FPB] if kind == "chroma" else np.concatenate([mel, c[:n * FPB]], 1)
+    return songs
+
+
 def batches(songs, index, W, bs, rng, mean, std, shuffle=True):
     order = rng.permutation(len(index)) if shuffle else np.arange(len(index))
     for k in range(0, len(order) - bs + 1, bs):
         sel = index[order[k:k + bs]]
-        X = np.empty((bs, W * FPB, N_MELS), dtype=np.float32)
+        # Feature width from the data, not N_MELS: chroma inputs are 12 or
+        # 128+12 wide (arch_compare --input).
+        X = np.empty((bs, W * FPB, songs[sel[0][0]]["feats"].shape[1]), dtype=np.float32)
         y = np.empty(bs, dtype=np.int64)
         for j, (si, b) in enumerate(sel):
             s = songs[si]

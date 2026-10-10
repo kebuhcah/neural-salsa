@@ -43,7 +43,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from train_phase import load_all, make_index, batches, DEV, FPB, N_MELS
+from train_phase import load_all, load_input, make_index, batches, DEV, FPB, N_MELS
 
 ROOT = Path(__file__).resolve().parent
 CLIP = 0.0          # >0 enables gradient-norm clipping
@@ -208,15 +208,21 @@ class BeatSeq(nn.Module):
     change the computation either.
     """
 
-    def __init__(self, W, d=128, layers=2, heads=4):
+    def __init__(self, W, d=128, layers=2, heads=4, n_chroma=0):
         super().__init__()
 
         def blk(i, o):
             return [nn.Conv2d(i, o, 3, stride=2, padding=1), nn.GroupNorm(4, o), nn.ReLU()]
 
-        self.W = W
+        self.W, self.n_chroma = W, n_chroma
         self.enc = nn.Sequential(*blk(1, 16), *blk(16, 32), *blk(32, 64))   # [16,128] -> [2,16]
-        self.proj = nn.Linear(64 * 2, d)
+        # Optional chroma branch (input = 128 mel bins + n_chroma pitch classes
+        # per frame). Chroma is not a spectrum -- adjacent bins are not
+        # neighbouring frequencies -- so it gets its own small dense encoder
+        # per beat rather than sharing the convolution.
+        self.cenc = (nn.Sequential(nn.Linear(FPB * n_chroma, 64), nn.ReLU())
+                     if n_chroma else None)
+        self.proj = nn.Linear(64 * 2 + (64 if n_chroma else 0), d)
         self.pos = nn.Parameter(torch.randn(W, d) * 0.02)
         layer = nn.TransformerEncoderLayer(d, heads, 4 * d, dropout=0.1,
                                            batch_first=True, norm_first=True)
@@ -227,7 +233,12 @@ class BeatSeq(nn.Module):
     def forward(self, x):
         B = x.shape[0]
         beats = x.reshape(B * self.W, 1, FPB, x.shape[-1])       # one image per beat
-        z = self.enc(beats).mean(3).flatten(1)                  # [B*W, 128]
+        if self.cenc is not None:
+            mel, chroma = beats[..., :-self.n_chroma], beats[..., -self.n_chroma:]
+            z = torch.cat([self.enc(mel).mean(3).flatten(1),
+                           self.cenc(chroma.flatten(1))], 1)      # [B*W, 128 + 64]
+        else:
+            z = self.enc(beats).mean(3).flatten(1)              # [B*W, 128]
         z = self.tf(self.proj(z).reshape(B, self.W, -1) + self.pos)
         return self.head(self.drop(z[:, -1])), None, None       # target is the last beat
 
@@ -237,6 +248,8 @@ def make_model(kind, W):
         return Bands()
     if kind == "beatseq":
         return BeatSeq(W)
+    if kind == "beatseqc":
+        return BeatSeq(W, n_chroma=12)                           # needs --input mel+chroma
     return Model(kind, W * FPB)
 
 
@@ -379,12 +392,14 @@ def main():
                     help="also score this many training songs, for the train/val gap; 0 = off")
     ap.add_argument("--seed0", type=int, default=0, help="first seed, so new seeds can be added")
     ap.add_argument("--out", default="data/arch_compare.json")
+    ap.add_argument("--input", default="mel", choices=["mel", "chroma", "mel+chroma"],
+                    help="model input features (chroma from build_chroma.py)")
     ap.add_argument("--save-logp", default=None, metavar="DIR",
                     help="also save each seed's per-song log-probs to DIR/<spec>_split<k>_s<seed>.npz "
                          "for ensemble.py")
     args = ap.parse_args()
 
-    songs = load_all()
+    songs = load_input(args.input)
     perm = np.random.default_rng(0).permutation(len(songs))
     if args.folds:
         k = f"cv{args.folds}.{args.fold}"
