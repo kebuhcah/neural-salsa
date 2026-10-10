@@ -56,8 +56,9 @@ notching it out fixes every seed (section 13a).
   held out. Regularisation and augmentation (band dropout, pitch/tempo
   shift, early stopping), pretrained features, more labelled songs. Judge
   everything by 6-fold CV against 0.811.
-- Miami and El Bembe: models are confidently 4 beats off (Miami 7% per
-  window, below chance) -- check the annotations by ear.
+- El Bembe: models are confidently 4 beats off on both sides of its 2:43
+  shift -- check the annotation by ear. (Miami, similar by the numbers,
+  sounds correctly annotated: a genuine model failure, section 14e.)
 - Why beatseq systematically flips Ocairi and Un Dia Yo while the gru does
   not, and why every model fails El Bembe (section 14b).
 - Shift songs: five held-out songs have annotated 4-beat shifts and they are
@@ -1518,10 +1519,13 @@ the shape is not.
 **Hardest held-out songs.** Six shift-free songs decode fully flipped:
 Miami, Volando Entre Tus Brazos, Como Te Quise Yo, Todo Tiene Su Final, Otra
 Oportunidad, Si Supieras -- Volando and Otra Oportunidad were also the worst
-in section 11. **Miami looks like an annotation problem**: per-window 7%,
-below chance, with e -6.5 -- confidently and consistently 4 beats off, the
-pattern of a label offset by 4 more than of a model error. El Bembe is
-similar (12%, e -4.1). Both worth a listen.
+in section 11. Miami is decoded with per-window 7%, below chance, and e
+-6.5 -- confidently and consistently 4 beats off, which looked like a label
+offset. **By ear it is not** (listener): the annotation sounds mostly right,
+though the middle of the song is hard to follow, with the listener making
+not just 1<->5 errors but others too. So Miami is a genuine, confident model
+failure on a song that is hard by ear in places. El Bembe (12%, e -4.1)
+still to check.
 
 **Consequences.** CV (0.811) is now the baseline for anything new. Next
 levers, by the evidence: regularisation and augmentation (band dropout,

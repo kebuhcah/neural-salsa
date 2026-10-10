@@ -26,7 +26,9 @@ play and draw anything, and its output in data/explorer/ stays untracked.
 import argparse
 import json
 import shutil
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -91,8 +93,57 @@ def render_spectrogram(y, png, width=2400, height=700):
     return {"x0": p.x0, "x1": p.x1, "y0": 1 - p.y1, "y1": 1 - p.y0}
 
 
+def make_voice(out):
+    """Spoken "one" and "five" for the page to say on the annotated 1 and 5.
+
+    Recorded with macOS `say`, leading silence trimmed so each word starts at
+    its sound -- the page schedules it exactly on the beat. Speech synthesis
+    in the browser was not used: its latency is unpredictable (often
+    100-300 ms), useless for judging where a beat lands. Without `say` the
+    page falls back to two tones.
+    """
+    for word, name in (("one", "voice_one.wav"), ("five", "voice_five.wav")):
+        dest = out / name
+        if dest.exists():
+            continue
+        if not shutil.which("say") or not shutil.which("afconvert"):
+            print("no macOS `say`; the page will use tones for 1 and 5")
+            return
+        with tempfile.TemporaryDirectory() as td:
+            aiff, wav = Path(td) / "w.aiff", Path(td) / "w.wav"
+            subprocess.run(["say", "-r", "230", "-o", str(aiff), word], check=True)
+            subprocess.run(["afconvert", "-f", "WAVE", "-d", "LEI16@22050", str(aiff), str(wav)],
+                           check=True)
+            v, sr = sf.read(wav, dtype="float32")
+        v = v if v.ndim == 1 else v.mean(1)
+        loud = np.flatnonzero(np.abs(v) > 0.02 * np.abs(v).max())
+        v = v[loud[0]:loud[-1] + 1]
+        sf.write(dest, 0.9 * v / np.abs(v).max(), sr)
+
+
+def voice_leads(out):
+    """Seconds from each clip's start to where the word is heard to begin.
+
+    "five" opens with a quiet fricative, so its vowel -- what the ear takes as
+    the onset -- arrives ~35 ms in; started exactly on the beat it would sound
+    late. The page starts each word early by this much. Onset = the 10 ms
+    envelope first reaching 30% of its peak.
+    """
+    leads = {}
+    for count, name in ((1, "voice_one.wav"), (5, "voice_five.wav")):
+        p = out / name
+        if not p.exists():
+            continue
+        v, sr = sf.read(p, dtype="float32")
+        w = max(1, int(0.01 * sr))
+        env = np.sqrt(np.convolve(v ** 2, np.ones(w) / w, "same"))
+        leads[count] = round(float(np.argmax(env >= 0.3 * env.max()) / sr), 4)
+    return leads
+
+
 def build(song_query):
     OUT.mkdir(parents=True, exist_ok=True)
+    make_voice(OUT)
     cand = []
     for f in sorted(FEAT.glob("*.npz")):
         z = np.load(f, allow_pickle=True)
@@ -120,12 +171,12 @@ def build(song_query):
     beats = [{"t": round(float(t), 4), "c": int(c) + 1}
              for t, c in zip(z["times"], z["counts"])]
     data = {"title": title, "artist": artist, "dur": len(y) / sr,
-            "beats": beats, "box": box,
+            "beats": beats, "box": box, "voiceLead": voice_leads(OUT),
             "bands": [{"name": n, "lo": lo, "hi": hi}
                       for n, (lo, hi) in zip(BAND_NAMES, BAND_EDGES)]}
     html = TEMPLATE.replace("__DATA__", json.dumps(data)).replace("__SLUG__", slug)
     (OUT / f"{slug}.html").write_text(html)
-    print(f"wrote data/explorer/{slug}.html  ({len(beats)} beats)")
+    print(f"wrote {OUT / slug}.html  ({len(beats)} beats)")
     return slug
 
 
@@ -155,7 +206,8 @@ TEMPLATE = r"""<!doctype html><meta charset=utf-8>
   <span class=lbl id=tpos>0:00.0</span>
   <span class=lbl>go to</span><input id=goto size=6 placeholder="m:ss">
   <span class=lbl id=hov></span>
-  <label><input type=checkbox id=click> click on the 1</label>
+  <label><input type=checkbox id=count> count 1 and 5 aloud</label>
+  <label class=lbl>voice <input type=range id=vvol min=0 max=1.5 step=0.05 value=0.9 style="width:90px"></label>
   <span id=status></span>
 </div>
 <div class=row id=bands><span class=lbl>band:</span></div>
@@ -184,6 +236,12 @@ const btn=document.getElementById('play'), st=document.getElementById('status');
 // setting currentTime silently snaps back to zero.
 let ctx,buf,src,hp,lp,playing=false,offset=0,startedAt=0;
 let gains=[]; const muted=D.bands.map(()=>false);
+let voiceGain, voice={}, voiceSrcs=[], nextBeat=0;
+function tone(f){                                   // 120 ms decaying sine
+  const n=Math.round(ctx.sampleRate*0.12), b=ctx.createBuffer(1,n,ctx.sampleRate), d=b.getChannelData(0);
+  for(let i=0;i<n;i++) d[i]=0.6*Math.sin(2*Math.PI*f*i/ctx.sampleRate)*Math.exp(-i/(n/4));
+  return b;
+}
 async function load(){
   ctx=new (window.AudioContext||window.webkitAudioContext)();
   hp=ctx.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=LOF; hp.Q.value=0.7;
@@ -214,6 +272,14 @@ async function load(){
       rest=lr8('highpass',edges[i],rest);
     } else rest.connect(gn);
     gn.connect(ctx.destination); return gn; });
+  // The spoken count bypasses the band filters, so muting a band never mutes it.
+  voiceGain=ctx.createGain(); voiceGain.gain.value=+document.getElementById('vvol').value;
+  voiceGain.connect(ctx.destination);
+  for(const [c,f] of [[1,'voice_one.wav'],[5,'voice_five.wav']]){
+    try{ const r=await fetch(f); if(!r.ok) throw 0;
+      voice[c]=await ctx.decodeAudioData(await r.arrayBuffer()); }
+    catch(e){ voice[c]=tone(c===1?880:440); }        // no recording: a high and a low tone
+  }
   try{
     const r=await fetch('__SLUG__.wav'); if(!r.ok) throw new Error('HTTP '+r.status);
     buf=await ctx.decodeAudioData(await r.arrayBuffer());
@@ -226,8 +292,37 @@ const now=()=>Math.min(playing?offset+(ctx.currentTime-startedAt):offset, dur())
 function start(){ if(!buf)return;
   src=ctx.createBufferSource(); src.buffer=buf; src.connect(hp);
   src.start(0, Math.max(0,Math.min(offset,buf.duration-0.01)));
-  startedAt=ctx.currentTime; playing=true; btn.textContent='pause'; }
-function halt(){ if(src){ try{src.stop()}catch(e){} src.disconnect(); src=null; } }
+  startedAt=ctx.currentTime; playing=true; btn.textContent='pause'; resetVoice(); }
+function halt(){ if(src){ try{src.stop()}catch(e){} src.disconnect(); src=null; } resetVoice(); }
+
+// Spoken count. Words are scheduled on the audio clock a little ahead of each
+// annotated 1 and 5, so they land exactly on the beat; triggering them from
+// the screen refresh would fire up to a frame late, after the beat.
+const countEl=document.getElementById('count');
+function resetVoice(){
+  voiceSrcs.forEach(s=>{ try{s.stop()}catch(e){} }); voiceSrcs=[];
+  const t=now(); nextBeat=0;
+  while(nextBeat<D.beats.length && D.beats[nextBeat].t<t) nextBeat++;
+}
+function scheduleVoice(){
+  if(!playing||!countEl.checked||!ctx) return;
+  const horizon=now()+0.35;                         // > the longest voice lead
+  while(nextBeat<D.beats.length && D.beats[nextBeat].t<horizon){
+    const b=D.beats[nextBeat++];
+    if((b.c!==1&&b.c!==5)||!voice[b.c]) continue;
+    // song time -> audio clock, started early so the word is heard on the beat
+    const when=startedAt+(b.t-offset)-((D.voiceLead||{})[b.c]||0);
+    if(when<ctx.currentTime-0.02) continue;
+    const s=ctx.createBufferSource(); s.buffer=voice[b.c]; s.connect(voiceGain);
+    s.start(Math.max(when,ctx.currentTime));
+    s.onended=()=>{ voiceSrcs=voiceSrcs.filter(x=>x!==s); };
+    voiceSrcs.push(s);
+  }
+}
+setInterval(scheduleVoice,50);
+countEl.addEventListener('change',()=>{ if(ctx) ctx.resume(); resetVoice(); });
+document.getElementById('vvol').addEventListener('input',e=>{
+  if(voiceGain) voiceGain.gain.value=+e.target.value; });
 function pause(){ if(playing){ offset=now(); halt(); playing=false; btn.textContent='play'; } }
 function seek(t){ const was=playing; if(was){halt();playing=false;}
   offset=Math.max(0,Math.min(t,dur()-0.01)); if(was) start(); }
@@ -320,12 +415,6 @@ function tick(){
   c.textContent=b?b.c:'-';
   c.style.color=b&&b.c===1?'#0f8':(b&&b.c===5?'#fa0':'#ddd');
   document.getElementById('tpos').textContent=fmt(t);
-  if(document.getElementById('click').checked&&b&&i!==last&&b.c===1&&ctx&&playing){
-    const o=ctx.createOscillator(), gg=ctx.createGain();
-    o.frequency.value=1200; gg.gain.setValueAtTime(0.25,ctx.currentTime);
-    gg.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.06);
-    o.connect(gg); gg.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.07);
-  }
   last=i; draw(); requestAnimationFrame(tick);
 }
 load(); tick();
@@ -336,4 +425,8 @@ load(); tick();
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--song", required=True)
-    build(ap.parse_args().song)
+    ap.add_argument("--out", default=None, help="output directory (default data/explorer)")
+    a = ap.parse_args()
+    if a.out:
+        OUT = Path(a.out)
+    build(a.song)
