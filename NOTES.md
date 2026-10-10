@@ -1670,6 +1670,40 @@ explicitly, the models use it, significantly per window and on songs where
 harmony was the missing cue -- but it does not yet become a reliable
 song-level gain.
 
+### 14h. Keeping the frequency axis: better positions, not better 1-vs-5
+
+To separate "the architecture averages the pitch away" from "harmony is not
+in a learnable form": `beatseqf` is beatseq on log-mel without the mean over
+frequency (1x1 conv 64 -> 16, then all time-frequency positions flattened;
+494k parameters vs 444k). 6-fold CV, 2 seeds, same folds (`data/cv_keepfreq/`).
+Paired per song against the log-mel baseline:
+
+| | keep frequency | add chroma (14g) |
+|---|---|---|
+| per-window | **+0.029** (55/28 songs, p 0.004) | **+0.038** (55/30, p 0.004) |
+| which-half | +0.008 (46/37, p 0.29) | **+0.026** (50/36, p 0.048) |
+| which-half, harmony marks the 1 strongly / weakly | +0.016 / +0.011 | **+0.042** / +0.024 |
+| song-level | -0.015 (p 0.55) | +0.011 (p 0.65) |
+| evidence e | +0.37 (p 0.061) | +0.02 |
+| train per-window | 0.995 | 0.992 |
+
+- **Keeping frequency helps per window but not the 1-vs-5 call**: the gain is
+  in position within the half; which-half barely moves and does not depend
+  on whether harmony marks the 1. More confident, slightly more overfit.
+- **Chroma is what helps 1 vs 5**, most where harmony marks the 1. So the
+  bottleneck is less "pitch averaged away" than "harmony not in a learnable
+  form" from ~85 songs: octave-folded pitch classes, with resolved low notes.
+- **Neither moves song-level beyond noise** (13 songs below 0.5 in all
+  three). Both fix Otra Oportunidad; keep-frequency half-fixes Si Supieras
+  and Todo Tiene Su Final. Both break **Gotas De Lluvia** on both seeds --
+  worth a look: the baseline may have been lucky, or the song relies on a
+  cue the new inputs dilute.
+
+**Next.** Song-level differences between all these variants are about one
+seed's flips, and they fail on different songs: ensembling seeds across
+variants (which removed minority flips in 14b) is likelier to pay than a
+single better model. Pretrained features remain the other strong option.
+
 **Consequences.** CV (0.811) is now the baseline for anything new. Next
 levers, by the evidence: regularisation and augmentation (band dropout,
 pitch/tempo shift, stronger dropout, early stopping) for the 0.99 vs 0.68
