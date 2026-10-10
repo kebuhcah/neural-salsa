@@ -52,23 +52,30 @@ notching it out fixes every seed (section 13a).
   the phase is a property of the *song*.
 
 ### What is open
-- **Overfitting** (section 14e): 0.99 per window on training songs vs 0.68
-  held out. Regularisation and augmentation (band dropout, pitch/tempo
-  shift, early stopping), pretrained features, more labelled songs. Judge
-  everything by 6-fold CV against 0.811.
-- **The models cannot read the piano** (section 14f): in El Bembe the piano
-  alone still leads them to the wrong phase, while for the listener it is
-  the best cue; drums mislead them throughout. Try inputs that expose
-  melody and harmony: chroma (`build_chroma.py`) or pretrained features.
-  (Miami's annotation also checks out by ear: a genuine model failure, 14e.)
-- Why beatseq systematically flips Ocairi and Un Dia Yo while the gru does
-  not, and why every model fails El Bembe (section 14b).
+- **Overfitting -- the main target** (section 14e): 0.99 per window on
+  training songs vs 0.68 held out; the learning curve still rises. Judge
+  everything by 6-fold CV against 0.811. In order:
+  1. Augmentation on log-mel + chroma (beatseqc): transposition (roll
+     chroma by k semitones, shift mel to match) for key invariance;
+     frequency/band masking against reliance on percussion. Later, if it
+     helps: stem remixing (Demucs all songs, random per-stem gains).
+  2. More data: 15 catalogue songs are labelled but their audio failed to
+     download (YouTube unavailable/private/blocked) -- +18% if alternate
+     uploads of the same recordings can be found and aligned
+     (`verify_alignment.py`).
+  3. Ensembling seeds across variants (log-mel, +chroma, keep-frequency):
+     song-level differences are mostly single-seed flips (14b, 14h).
+- **Harmony is under-used** (14f-14h): the piano alone leads models to the
+  wrong phase in El Bembe; harmony marks the 1 in 75% of songs but the
+  log-mel models ignore it. Chroma input helps per window (+0.038, p 0.004)
+  and on the 1-vs-5 call, not yet song-level. Pretrained features untried.
 - Shift songs: five held-out songs have annotated 4-beat shifts and they are
   exactly the songs nothing decodes. A +4-shift decoder recovers them but
   breaks songs where models are misled for long stretches (section 14c); a
-  model that sees more of the song is the likelier route.
-- El Bembe: by ear, is its annotated 1 right before 2:43? The models are 4
-  beats off on both sides of its shift.
+  model that sees more of the song is the likelier route. 47 of 55 annotated
+  shifts follow a break (14j) -- a cue a model could learn.
+- Why beatseq systematically flips Ocairi and Un Dia Yo while the gru does
+  not (section 14b).
 - A song-aware band gate: the per-window gate learned one fixed preference.
 - The online filter gets 0.800 where batch gets 0.894 -- that gap is
   recoverable by better causal decoding.
