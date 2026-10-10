@@ -47,6 +47,72 @@ from train_phase import load_all, load_input, make_index, batches, DEV, FPB, N_M
 
 ROOT = Path(__file__).resolve().parent
 CLIP = 0.0          # >0 enables gradient-norm clipping
+AUG = set()         # training-time augmentation: {"transpose", "mask"}; see augment()
+N_CHROMA = 0        # trailing chroma columns in the input (12 with --input mel+chroma)
+
+
+def _mel_shift_tables(n_mels=128, f_min=30.0, f_max=10000.0):
+    """For each transposition k in -5..+6 semitones: fractional source bin per mel bin.
+
+    Matches build_features' torchaudio MelSpectrogram (HTK mel scale). Moving
+    content from frequency f to f * 2**(k/12) means the new bin centred at c
+    takes the old spectrum at c / 2**(k/12) -- interpolated, since mel bins
+    are not evenly spaced in pitch (linear below ~1 kHz).
+    """
+    hz2mel = lambda f: 2595 * np.log10(1 + f / 700)
+    mel2hz = lambda m: 700 * (10 ** (m / 2595) - 1)
+    centres = mel2hz(np.linspace(hz2mel(f_min), hz2mel(f_max), n_mels + 2)[1:-1])
+    tables = {}
+    for k in range(-5, 7):
+        src = np.interp(centres / 2 ** (k / 12), centres, np.arange(n_mels))   # clamps at edges
+        lo = np.floor(src).astype(int); hi = np.minimum(lo + 1, n_mels - 1)
+        tables[k] = (lo, hi, (src - lo).astype(np.float32))
+    return tables
+
+
+_MEL_TABLES = None
+
+
+def augment(X, rng):
+    """Training-only augmentation of a batch X [B, 1, T, F] (F = 128 mel [+ chroma]).
+
+    transpose: with p 0.8, shift each example by a random -5..+6 semitones,
+               the same k for mel (resampled along frequency) and chroma
+               (rolled, exact) -- every song is in one key, so this teaches
+               chord *movement* rather than memorised key-specific patterns.
+    mask:      blank two random mel bands of up to 24 bins each (SpecAugment
+               style), so no one region -- e.g. the percussion's -- decides alone.
+    Features are per-song z-scored, so 0 is the song's mean level.
+    """
+    global _MEL_TABLES
+    if not AUG:
+        return X
+    B, F = X.shape[0], X.shape[-1]
+    n_mel = F - N_CHROMA
+    X = X.clone()
+    if "transpose" in AUG:
+        if _MEL_TABLES is None:
+            _MEL_TABLES = {k: tuple(torch.as_tensor(a) for a in v)
+                           for k, v in _mel_shift_tables(n_mel).items()}
+        ks = np.where(rng.random(B) < 0.8, rng.integers(-5, 7, B), 0)
+        for k in np.unique(ks):
+            if k == 0:
+                continue
+            sel = torch.as_tensor(np.flatnonzero(ks == k), device=X.device)
+            lo, hi, w = (t.to(X.device) for t in _MEL_TABLES[int(k)])
+            mel = X[sel, :, :, :n_mel]
+            X[sel, :, :, :n_mel] = mel[..., lo] * (1 - w) + mel[..., hi] * w
+            if N_CHROMA:
+                X[sel, :, :, n_mel:] = torch.roll(X[sel, :, :, n_mel:], int(k), dims=-1)
+    if "mask" in AUG:
+        m = torch.ones(B, 1, 1, F, device=X.device)
+        for b in range(B):
+            for _ in range(2):
+                width = int(rng.integers(0, 25))
+                start = int(rng.integers(0, max(1, n_mel - width)))
+                m[b, 0, 0, start:start + width] = 0
+        X = X * m
+    return X
 
 
 # Trunk variants. Two things were changed at once earlier -- BatchNorm ->
@@ -319,6 +385,7 @@ def run(kind, W, songs, epochs, seed, tr, va_index, aux=0.3, micro=None,
     for _ in range(epochs):
         model.train(); nb = 0
         for X, y in batches(songs, tr, W, 128, rng, 0.0, 1.0):
+            X = augment(X, rng)                  # no-op unless AUG is set
             opt.zero_grad()
             chunks = max(1, (len(X) + micro - 1) // micro)
             for ci in range(chunks):
@@ -407,12 +474,21 @@ def main():
     ap.add_argument("--out", default="data/arch_compare.json")
     ap.add_argument("--input", default="mel", choices=["mel", "chroma", "mel+chroma"],
                     help="model input features (chroma from build_chroma.py)")
+    ap.add_argument("--aug", default="", help="training augmentation: comma list of "
+                    "transpose, mask (see augment()); needs --input mel or mel+chroma")
     ap.add_argument("--save-logp", default=None, metavar="DIR",
                     help="also save each seed's per-song log-probs to DIR/<spec>_split<k>_s<seed>.npz "
                          "for ensemble.py")
     args = ap.parse_args()
 
     songs = load_input(args.input)
+    global AUG, N_CHROMA
+    AUG = {a for a in args.aug.split(",") if a}
+    assert AUG <= {"transpose", "mask"}, f"unknown augmentation {AUG}"
+    assert not AUG or args.input != "chroma", "augmentation needs the mel input"
+    N_CHROMA = 12 if args.input == "mel+chroma" else 0
+    if AUG:
+        print(f"training augmentation: {', '.join(sorted(AUG))}")
     perm = np.random.default_rng(0).permutation(len(songs))
     if args.folds:
         k = f"cv{args.folds}.{args.fold}"
