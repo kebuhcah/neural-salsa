@@ -83,7 +83,7 @@ content), so from any other machine the YouTube links above are what you have.
 
 ```bash
 cd ~/neural-salsa
-.venv/bin/python spectro_explorer.py --song "Amor y Control"
+.venv/bin/python tools/spectro_explorer.py --song "Amor y Control"
 cd data/explorer && python3 -m http.server 8765
 # then open http://localhost:8765/amor-y-control.html
 ```

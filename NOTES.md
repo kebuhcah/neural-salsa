@@ -62,7 +62,7 @@ notching it out fixes every seed (section 13a).
   2. More data: 15 catalogue songs are labelled but their audio failed to
      download (YouTube unavailable/private/blocked) -- +18% if alternate
      uploads of the same recordings can be found and aligned
-     (`verify_alignment.py`).
+     (`local/verify_alignment.py`).
   3. Ensembling seeds across variants (log-mel, +chroma, keep-frequency):
      song-level differences are mostly single-seed flips (14b, 14h).
 - **Harmony is under-used** (14f-14h): the piano alone leads models to the
@@ -91,17 +91,16 @@ notching it out fixes every seed (section 13a).
 - `micro` must be passed explicitly; auto-shrinking it with W silently changed
   BatchNorm's behaviour and invalidated a cross-window comparison.
 - `load_all()` returns **float16**; cast before feeding a model.
-- Counts are 0-indexed in `build_features.py`, 1-indexed in
-  `stage_b_labels.py`. Reconcile before trusting any reset detection.
+- Counts are 0-indexed in `local/build_features.py`, 1-indexed in
+  `local/stage_b_labels.py`. Reconcile before trusting any reset detection.
 - Two seeds resolve ~0.08 and nothing finer. Report seed spread always.
 - Vary one thing per run. Epochs and micro are part of the configuration.
 - Do not grep warnings out of training logs.
 
 ### How to run
-    .venv/bin/python bridge_test.py            # song-level decoding, the headline
-    .venv/bin/python arch_compare.py --help    # architecture sweep
-    .venv/bin/python context_sweep.py --help   # window-length sweep
-    .venv/bin/python validate_halfsim.py       # out-of-sample predictor test
+Commands for training, cross-validation, reports, probes and the
+spectrogram browser are in `README.md`. Run everything from the repo root,
+e.g. `python tools/cv_report.py data/cv`.
 
 See `LISTENING.md` for per-song difficulty with YouTube links, and section 16
 for the repo layout and the npz data contract.
@@ -199,7 +198,7 @@ investigable question.
 ## 3. Stage A probe: does Beat This! track salsa?
 
 Ran Beat This! (`final0`, no DBN) over all 124 ISMIR fragments. Script:
-`stage_a_probe.py`, results `data/stage_a_probe.json`.
+`experiments/stage_a_probe.py`, results `data/stage_a_probe.json`.
 
 **Data caveat found in the process.** `audio_fragments.zip` is 124 x 30s
 excerpts (1.03h), not full songs, and *nothing documents which 30 seconds*.
@@ -259,7 +258,7 @@ pulse**: octave (get to dancer rate) then phase (which bar starts the
 
 ## 4. Stage B: decoding 8-count phase
 
-`stage_b_decode.py`. Given a beat grid, phase advances deterministically --
+`core/stage_b_decode.py`. Given a beat grid, phase advances deterministically --
 beat j has count (phi + j) mod 8 for one unknown phi per segment. So the
 decode is a single aggregated choice, not per-beat argmax. With a symmetric
 error model the log-prob sum under hypothesis h is monotonic in the match
@@ -306,7 +305,7 @@ collapses, and accuracy will not show it.
 
 Batch decoding answers "what was this song's phase". The questions a dancer
 has are temporal: how fast can I tell? how fast do I recover after losing
-it? how fast do I notice a change? `stage_b_online.py` is a forward filter
+it? how fast do I notice a change? `core/stage_b_online.py` is a forward filter
 over the 8 phase states -- same model, read continuously instead of once.
 
 Reframing matters because it moves the operating point. Over 636 beats a
@@ -356,7 +355,7 @@ length**, which is exactly the "how quickly can you tell?" curve.
 
 ## 6. First phase classifier
 
-`build_features.py` (beat-synchronous log-mel) + `train_phase.py`. Causal
+`local/build_features.py` (beat-synchronous log-mel) + `core/train_phase.py`. Causal
 framing: given the W beats just heard, what count is the current beat?
 Splits are by song. Chance = 0.125.
 
@@ -439,7 +438,7 @@ Nothing here is tuned.
 
 ## 7. Real lock latency (measured, not simulated)
 
-`stage_b_eval_online.py` drives the forward filter with the trained W=8
+`experiments/stage_b_eval_online.py` drives the forward filter with the trained W=8
 classifier (val acc 0.687, margin +0.469) over 16 held-out songs.
 
 | | median | p90 |
@@ -500,8 +499,8 @@ Every non-flip error is *below* uniform. Two thirds of all errors are the
 flip, so fixing 1-vs-5 alone would take accuracy from 0.69 to ~0.90.
 
 ### Two bugs found here
-- `find_resets` assumed 1-indexed counts, but `build_features.py` stores them
-  0-indexed while `stage_b_labels.py` stores them 1-indexed. Every 7->0 wrap
+- `find_resets` assumed 1-indexed counts, but `local/build_features.py` stores them
+  0-indexed while `local/stage_b_labels.py` stores them 1-indexed. Every 7->0 wrap
   read as a reset: 11,081 instead of 56. The two files should be reconciled.
 - `PhaseFilter` advanced phase by exactly 1 per update, so subsampling for the
   stride experiment silently broke the transition model (nonsense 489-beat
@@ -511,7 +510,7 @@ flip, so fixing 1-vs-5 alone would take accuracy from 0.69 to ~0.90.
 
 ## 8. Frequency-band ablation: not the clave, and it depends on the song
 
-`ablation.py`. *Knockout* blanks a band at test time on the trained model
+`experiments/ablation.py`. *Knockout* blanks a band at test time on the trained model
 (measures RELIANCE; confounded, blanked input is out of distribution).
 *Isolate* retrains on one band (measures what the band CONTAINS).
 
@@ -669,7 +668,7 @@ accumulation genuinely free, which large windows need.
 
 ## 10. Per-window accuracy was the wrong metric
 
-`bridge_test.py`. Three readings of the same model posteriors:
+`experiments/bridge_test.py`. Three readings of the same model posteriors:
 
     raw       per-window argmax, independent -- what sections 6-9 reported
     filtered  online forward filter, belief carried forward, causal
@@ -862,7 +861,7 @@ alongside any comparison: at two seeds nothing below ~0.08 is resolvable.
 
 ## 13. Context length re-measured at song level
 
-`context_sweep.py --windows 8,16,24 --kind gru --epochs 4 --seeds 2
+`experiments/context_sweep.py --windows 8,16,24 --kind gru --epochs 4 --seeds 2
 --micro 128 --out data/context_song.json`. Same split, head, budget and micro
 as the section 9 run that crowned W=24, now also batch-decoding every song.
 
@@ -908,7 +907,7 @@ reach *confidently opposite* answers. Section 13a asks why.
 
 ### 13a. What the inverting models rely on: the 2.5-6 kHz band
 
-`amor_compare.py --seeds 0,1,2,3`. Four W=24 gru seeds on the same split
+`experiments/amor_compare.py --seeds 0,1,2,3`. Four W=24 gru seeds on the same split
 divide evenly: seeds 1 and 2 decode Amor y Control perfectly, seeds 0 and 3
 invert it (seed 0 reproduces its sweep result). All four decode every other
 validation song identically (0.951, the ceiling given the two shifted songs).
@@ -969,7 +968,7 @@ models correct and changes no other song's song-level result.
   beats off. Clave direction alone does not locate the 1, so testing this
   needs per-song annotation of which side carries it. A hypothesis, not a
   finding -- **listen with high-mid muted and solo'd**
-  (`spectro_explorer.py --song "Amor y Control"`) to check it.
+  (`tools/spectro_explorer.py --song "Amor y Control"`) to check it.
 - This does not revive "the model uses clave" in general: on the other songs
   high-mid is the *least* important band. It says high-mid is decisive when
   it disagrees with the bass.
@@ -1007,7 +1006,7 @@ in high-mid points four beats off for most of the rest of the song. An
 earlier version of this section called 0:17-0:32 "the intro" and put the
 switch at 0:33; that was window-end time misread as audio time.
 
-**By model** (`amor_when.py`): mean e over all four seeds per 16-beat stretch,
+**By model** (`experiments/amor_when.py`): mean e over all four seeds per 16-beat stretch,
 and its shift when high-mid is blanked. Selected rows (window-end times):
 
 | time | e full | high-mid muted | note |
@@ -1042,7 +1041,7 @@ earlier.
 Hypothesis (listener): the vocals, which enter at ~0:20. Test: separate the
 song with Demucs (htdemucs: drums, bass, other, vocals), rebuild the model's
 features from the mix minus one stem with the exact `build_features`
-pipeline, and re-run the four W=24 models. `stem_ablation.py` (untracked:
+pipeline, and re-run the four W=24 models. `local/stem_ablation.py` (untracked:
 imports the grid decoder and reads licensed audio; stems cached in
 `data/explorer/stems/`).
 
@@ -1080,7 +1079,7 @@ not been run.
 for a long stretch; later there are traces of a cowbell and a plucked string
 instrument.
 
-**Along the song** (`stem_when.py`, untracked): change in 4-seed mean e per
+**Along the song** (`local/stem_when.py`, untracked): change in 4-seed mean e per
 16-beat stretch when each stem is removed. Window-end times; the audio
 responsible starts up to 8 s earlier.
 
@@ -1142,8 +1141,8 @@ shows onset timing misses what matters: bass carries the phase through
 ### 13d. Harmony: repeats every 4 beats; only "other" has 8-count structure
 
 Chroma from `build_chroma.chroma_of` (n_fft 8192, harmonic mask) on the mix
-and on the bass and "other" stems (`amor_harmony.py`,
-`amor_harmony_period.py`; untracked, caches in `data/explorer/stems/`).
+and on the bass and "other" stems (`local/amor_harmony.py`,
+`local/amor_harmony_period.py`; untracked, caches in `data/explorer/stems/`).
 
 **Chord-change timing** (change strength around 8&-1e vs 4&-5e): the mix
 changes a little more around the 1 (0.212 vs 0.160; 61% of cycles), and that
@@ -1206,10 +1205,10 @@ ceiling for these songs and is effectively correct. Two consequences:
 
 ## 14. Architectures at song level: long context, made cheap
 
-`arch_compare.py --window 24 --epochs 4 --seeds 2 --kinds
+`core/arch_compare.py --window 24 --epochs 4 --seeds 2 --kinds
 gru-saved,bands,beatseq,beatseq@48,beatseq@64 --out data/arch_song.json`.
 Same split as sections 13-13d. `gru-saved` re-scores the four gru W=24
-models from `amor_compare.py` (no retraining) as the baseline. Song-level
+models from `experiments/amor_compare.py` (no retraining) as the baseline. Song-level
 metrics now include **mean e** per song (evidence for the truth over the
 1<->5 flip), because song accuracy is nearly binary on 16 songs.
 
@@ -1259,7 +1258,7 @@ promising, not established.
 
 ### 14a. Confirmation: more confident, not demonstrably better
 
-`arch_compare.py` with `--split`, `--seed0` and per-kind epochs
+`core/arch_compare.py` with `--split`, `--seed0` and per-kind epochs
 (`data/confirm_*.json`; log in `data/confirm.log`). Three runs:
 
 | run | result | time |
@@ -1293,10 +1292,10 @@ decoding), which beatseq makes cheap.
 
 ### 14b. Seed ensembles, and combining the two models
 
-`arch_compare.py --save-logp data/ens` saves each seed's per-song
-log-probs; `ensemble.py` averages probabilities over every k-subset of
+`core/arch_compare.py --save-logp data/ens` saves each seed's per-song
+log-probs; `tools/ensemble.py` averages probabilities over every k-subset of
 seeds (mean over subsets reported, so no hand-picked combination);
-`ensemble_cross.py` combines the two models, aligned by beat index because
+`tools/ensemble_cross.py` combines the two models, aligned by beat index because
 their windows differ. 4 seeds per model per split (log: `data/ensemble.log`).
 
 | model, split | 1 seed | 4-seed ensemble | what happened |
@@ -1399,7 +1398,7 @@ evidence, because overlapping windows count each beat ~W times. Synthetic
 check: recovers planted shifts to within 4 beats and invents none in a
 shift-free song.
 
-**Evaluation** (`decode_eval.py`, on the saved 14b predictions, no
+**Evaluation** (`experiments/decode_eval.py`, on the saved 14b predictions, no
 retraining): 4 jump priors x 4 tempers, selected on split 0, reported on
 split 1. gru x4 + beatseq x4, change in mean per-beat accuracy vs batch:
 
@@ -1439,7 +1438,7 @@ Question: for each model and song, in what share of W-beat stretches of
 A model with a W-beat window answers it directly: it sees exactly W beats
 and predicts the last beat's count, which fixes the phase -- so its
 per-window accuracy on a song is that share (one stretch starting at every
-beat). `phase_from_audio.py` tabulates it from saved results. A trained
+beat). `tools/phase_from_audio.py` tabulates it from saved results. A trained
 model's number is a lower bound on what the audio contains.
 
 **gru, from the section 13 sweep** (split 0, 2 seeds; `data/context_song.json`):
@@ -1504,11 +1503,11 @@ log `data/short.log`):
 
 ### 14e. Cross-validation, train/val gap and learning curve
 
-Every comparison so far rested on two splits of 16 songs. `arch_compare.py
+Every comparison so far rested on two splits of 16 songs. `core/arch_compare.py
 --folds 6 --fold k` holds out one of six folds over all songs; every run also
 scores 16 of its own training songs; `--train-songs N` trains on fewer
 songs. beatseq W=48, 2 seeds per fold, plus 21- and 42-song runs (1 seed
-each). Results in `data/cv/`, report `cv_report.py data/cv`, log
+each). Results in `data/cv/`, report `tools/cv_report.py data/cv`, log
 `data/cv.log`. One song is too short to score, so 100 held-out songs.
 
 **The real held-out number is lower than the splits suggested:**
@@ -1581,9 +1580,9 @@ where drums dominate (the intro, the 2:43 percussion solo) -- but also wrong
 after 3:10 with the piano loud.
 
 **Stem test.** Models trained with El Bembe held out and saved (split 1;
-beatseq W=48 x 4, gru W=24 x 2; `bembe_train.py`), the song Demucs-separated
-and features rebuilt per variant (`bembe_stems.py`, verified bit-identical
-on the original), scored per section (`bembe_eval.py`; all three
+beatseq W=48 x 4, gru W=24 x 2; `local/bembe_train.py`), the song Demucs-separated
+and features rebuilt per variant (`local/bembe_stems.py`, verified bit-identical
+on the original), scored per section (`local/bembe_eval.py`; all three
 untracked: they use the grid decoder and licensed audio). Mean e (% windows
 correct), window-end time:
 
@@ -1615,17 +1614,17 @@ large distribution shift; 2-4 seeds.
 
 **Implication.** The listener's cue -- the piano's melody or chord progression
 across the 8-count -- is not something these models have learned to read
-from log-mel. Inputs designed for it: chroma (`build_chroma.py`, written for
+from log-mel. Inputs designed for it: chroma (`local/build_chroma.py`, written for
 exactly this after the listener's Amor y Control report), or pretrained
 music features.
 
 ### 14g. Harmony: present in most songs, unused by the models, partly usable with chroma
 
-Corpus chroma built for the first time (`build_chroma.py`, all 101 songs,
+Corpus chroma built for the first time (`local/build_chroma.py`, all 101 songs,
 `data/chroma/`; the beat grids agree with the log-mel features in every
 song).
 
-**Does harmony mark the 1?** `harmony_contrast.py`: per song, chroma change
+**Does harmony mark the 1?** `experiments/harmony_contrast.py`: per song, chroma change
 going into the 1 (across the 8 -> 1 boundary) minus going into the 5, at
 half-8-count resolution. In **75% of songs the harmony changes more at the
 1**; median +0.0095 (1 - cosine), range -0.099 .. +0.099. (A first version
@@ -1645,7 +1644,7 @@ percussion and bass rhythm plus memorisation are the easier route.
 **Chroma as input** (6-fold CV, 2 seeds, same folds; `--input chroma` with
 beatseq, `--input mel+chroma` with `beatseqc` -- a small dense chroma branch
 per beat; results `data/cv_chroma/`, `data/cv_melchroma/`, paired
-comparison `cv_compare.py`):
+comparison `tools/cv_compare.py`):
 
 | input | per-window | which-half | song-level | > 0.95 | flips/seed | train per-window |
 |---|---|---|---|---|---|---|
@@ -1730,7 +1729,7 @@ across the corpus.
 
 ### 14j. Corpus scan for missing shifts: only Gotas De Lluvia
 
-`label_scan.py`: per 8-count, the harmonic mark relative to the annotated
+`experiments/label_scan.py`: per 8-count, the harmonic mark relative to the annotated
 counts; for each song, the split point where the mark flips most clearly
 between the annotated 1 and 5 (at least 6 eight-counts per side, opposite
 signs, Welch t). **Gotas De Lluvia ranks first by a wide margin** (|t| 11.3,
@@ -1842,7 +1841,7 @@ splits of 16 songs; the remaining differences are a few songs.
 ## 15. Beat machine probe: what the models follow
 
 The Salsa Beat Machine (salsabeatmachine.org; source urish/beat-machine)
-plays canonical salsa parts from one-shot samples. `beatmachine.py`
+plays canonical salsa parts from one-shot samples. `core/beatmachine.py`
 reimplements its playback offline from the site's pattern XML and sample
 sprite (kept locally in `data/beatmachine/`, never committed: no licence,
 used with the owner's OK), so any line-up can be rendered with **the count of
@@ -1850,8 +1849,8 @@ every beat known exactly**. Checked: son clave lands on 2, 3 | 5, 6&, 8 (2-3);
 every piano/bass sample attack within 1 ms of its index; feature code
 bit-identical to `build_features` / `build_chroma` on real songs.
 
-`probe_beatmachine.py` renders 48 eight-counts per configuration (180 bpm,
-5 ms jitter) and scores models trained on **all** songs (`train_full.py`,
+`tools/probe_beatmachine.py` renders 48 eight-counts per configuration (180 bpm,
+5 ms jitter) and scores models trained on **all** songs (`core/train_full.py`,
 `data/probe_models/`, 2 seeds each): log-mel + chroma **with**
 transposition + masking, the same **without** augmentation, and log-mel only
 without augmentation. Default line-up (instructor excluded): son clave,
@@ -1932,28 +1931,16 @@ conflict.
 
 ## 16. What is in this repo
 
-Tracked (generic; reads only `data/features/*.npz`):
-
-| file | what it does |
-|---|---|
-| `train_phase.py` | model, training loop, `load_all`, `batches` |
-| `arch_compare.py` | trunk + head variants, the shared `run()` |
-| `context_sweep.py` | window-length sweep |
-| `trunk_ablation.py` | norm x downsample 2x2 |
-| `bridge_test.py` | **raw vs filtered vs batch decoding -- the headline** |
-| `validate_halfsim.py` | out-of-sample test of the audio-only predictor |
-| `stage_b_decode.py` | batch decoder (8-offset collapse, Viterbi) |
-| `stage_b_online.py` | online forward filter |
-| `stage_b_eval_online.py` | latency and calibration measurement |
-| `LISTENING.md` | per-song difficulty with YouTube links |
-
-Not tracked: the Visual Salsa ingestion layer, which imports a decoder for a
-proprietary format and handles subscription-licensed data
-(`fetch_grids.py`, `fetch_audio.py`, `build_features.py`, `build_chroma.py`,
-`stage_b_labels.py`, `spectro_explorer.py`, `visualsalsa_grid.py`,
-`verify_alignment.py`, `NOTES-visualsalsa.md`, `data/songs/`, `data/audio/`).
-Those notes hold the grid format spec, the alignment audit and the corpus
-quality findings.
+The layout, what each script does and the commands for training and
+experiments are in `README.md`; `data/README.md` lists every data file and
+folder, and `local/README.md` the local-only scripts. In short: `core/` is
+shared code and the training entry points, `tools/` the reports and
+utilities run after experiments, `experiments/` one-off investigations tied
+to sections of these notes, and `local/` (gitignored) the Visual Salsa
+ingestion layer -- it imports a decoder for a proprietary format and
+handles subscription-licensed data. `NOTES-visualsalsa.md` (also local)
+holds the grid format spec, the alignment audit and the corpus quality
+findings.
 
 ### The data contract
 Everything tracked here consumes one thing: `data/features/<id>.npz` with

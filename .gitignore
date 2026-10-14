@@ -1,48 +1,57 @@
-data/.token
-data/songs/
+# Python / environment
 __pycache__/
 *.pyc
-data/salsa_beats.zip
-
-# Visual Salsa ingestion layer: imports the proprietary grid decoder and/or
-# handles licensed data. Stays local. The modelling code (train_phase.py,
-# ablation.py, stage_b_eval_online.py) has no such dependency -- it reads only
-# data/features/*.npz -- so it is tracked.
-fetch_grids.py
-get_token.md
-visualsalsa_grid.py
-NOTES-visualsalsa.md
-data/visualsalsa_catalog.json
-data/visualsalsa_free_songs.json
 .venv/
-data/audio/
-data/audio_frag/
-data/mels/
-data/audio_fragments.zip
-data/mel_spectrograms.zip
-data/*.log
-stage_b_labels.py
-data/stage_b_labels.npz
+.DS_Store
+
+# ---------------------------------------------------------------------------
+# Local-only code. These scripts import the proprietary Visual Salsa grid
+# decoder and/or handle licensed audio, so they never leave this machine.
+# They live in local/; local/README.md (tracked) documents each one.
+local/*
+!local/README.md
+get_token.md
+NOTES-visualsalsa.md
+# Former top-level locations of the local scripts, kept so that a copy left
+# behind can never be committed by accident.
+visualsalsa_grid.py
+fetch_grids.py
 fetch_audio.py
-data/audio_status.json
 verify_alignment.py
-data/alignment.json
+stage_b_labels.py
 build_features.py
-data/features/
-data/phase_w8.pt
-data/ablation_*.json
-data/explorer/
 build_chroma.py
-data/chroma/
-data/amor_w*.pt
 stem_ablation.py
 stem_when.py
 amor_harmony.py
 amor_harmony_period.py
-data/ens/
 bembe_stems.py
 bembe_eval.py
 bembe_train.py
-data/bembe_models/
-data/beatmachine/
-data/probe_models/
+
+# ---------------------------------------------------------------------------
+# Local-only data: licensed audio and grids, derived features, saved models.
+# Each folder keeps a tracked README.md describing its contents; data/README.md
+# has the overview.
+data/.token
+data/songs/*
+data/audio/*
+data/audio_frag/*
+data/mels/*
+data/features/*
+data/chroma/*
+data/explorer/*
+data/ens/*
+data/probe_models/*
+data/bembe_models/*
+data/beatmachine/*
+!data/*/README.md
+data/*.log
+data/*.pt
+data/*.zip
+data/stage_b_labels.npz
+data/visualsalsa_catalog.json
+data/visualsalsa_free_songs.json
+data/audio_status.json
+data/alignment.json
+data/ablation_*.json
