@@ -1853,6 +1853,47 @@ shared.
   test-time adaptation**: decode the song, take its most confident stretches
   as provisional labels, fine-tune briefly on them, decode again.
 
+### 14n. Test-time adaptation: per-window consistency, not new answers
+
+The leak result (14l) suggested adapting to each new song without labels:
+predict, decode one count for the song, give every window the count that
+decode implies, fine-tune a copy of the model on that song alone, predict
+again. `experiments/adapt.py`, on per-fold models of the best configuration
+saved by `core/arch_compare.py --save-models` (6-fold CV, 1 seed; results
+`data/adapt_results.json`). 150 steps, batch 64, AdamW lr 1e-4, transposition
+augmentation; two variants fixed in advance -- provisional labels on all
+windows, or on the half where the model already agreed most. True labels
+score before vs after only. 101 held-out songs:
+
+| | per-window before -> after | songs better / worse | song-level |
+|---|---|---|---|
+| all songs, all-windows variant | 0.769 -> **0.852** | 73 / 22 | 0.852 -> 0.852 |
+| ... decode right before (88) | 0.807 -> **0.951** | 73 / 9 | unchanged |
+| ... decode wrong before (13) | 0.507 -> **0.183** | 0 / 13 | unchanged |
+| all songs, confident-half variant | 0.769 -> **0.853** | 72 / 14 | unchanged |
+| ... decode right before | 0.807 -> 0.931 | 72 / **1** | |
+| ... decode wrong before | 0.507 -> 0.329 | 0 / 13 | |
+
+- **Song-level does not move -- 0 songs fixed, 0 broken.** By construction:
+  the model is taught to agree with the song's own decode, so the decode
+  cannot change. Unlike the true labels of 14l (+0.068 song-level),
+  provisional labels add no information; they spread the existing
+  consensus.
+- **Per-window predictions change a lot, both ways.** Correctly decoded songs
+  become far more consistent (0.81 -> 0.95): most per-window errors there are
+  song-specific inconsistencies the song's own consensus can fix. Wrongly
+  decoded songs become confidently worse (0.51 -> 0.18).
+- **The confident-half variant is the safer one**: same overall gain, it
+  almost never hurts a correctly decoded song (72 better / 1 worse) and
+  halves the damage on wrong ones.
+
+**Where it is useful:** whenever per-window predictions matter on their own --
+real-time tracking (adapt on the opening stretch, predict ahead), spotting
+real phase shifts (a region that disagrees with an adapted model is more
+meaningful), or as a teacher for other models. **Where it is not:** the
+offline song-level answer. Improving that needs new information -- more
+data, better inputs, or a true label for part of the song.
+
 ### 14m. Tempo is nearly a wash
 
 Per-song tempo (median annotated beat interval): median 186 bpm, range
