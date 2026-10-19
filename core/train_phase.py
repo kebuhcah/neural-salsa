@@ -36,10 +36,14 @@ def load_all():
     for f in sorted(FEAT.glob("*.npz")):
         z = np.load(f, allow_pickle=True)
         f = z["feats"].astype(np.float32)
-        # Per-song normalisation, not global. Songs differ enormously in
-        # loudness and spectral tilt; with one global mean/std that variance
-        # dominates and the model sits at chance (loss pinned at ln 8) even on
-        # the training set. This single change is what makes the task learnable.
+        # Per-song normalisation: one mean and one std per song, which removes
+        # differences in overall level and dynamic range between recordings
+        # (not spectral tilt, which is a per-frequency pattern). It is NOT what
+        # made training work: the model once sat at chance (loss exactly ln 8)
+        # because float16 statistics overflowed and zeroed every input; the
+        # fix arrived together with this change and was first misattributed
+        # to it. With float32 statistics, global normalisation does as well
+        # (0.728 vs 0.711 per-window, NOTES section 6). Kept as harmless.
         f = (f - f.mean()) / (f.std() + 1e-6)
         # Keep the resident copy float16 and cast per batch. Full float32 for
         # 101 songs is ~600MB, which matters on a machine already swapping;
