@@ -45,9 +45,14 @@ def load_all():
         # to it. With float32 statistics, global normalisation does as well
         # (0.728 vs 0.711 per-window, NOTES section 6). Kept as harmless.
         f = (f - f.mean()) / (f.std() + 1e-6)
-        # Keep the resident copy float16 and cast per batch. Full float32 for
-        # 101 songs is ~600MB, which matters on a machine already swapping;
-        # the cast is cheap next to the forward pass.
+        # float16 for storage, float32 for computation. The copy kept in
+        # memory for every song is float16 -- half the size: ~400 MB for all
+        # 101 songs' log-mel + chroma instead of ~800 MB in float32. batches()
+        # converts each batch to float32 as it builds it, and every model runs
+        # in float32. The conversion is cheap: ~1.4 ms per batch against
+        # ~177 ms for a training step (forward + backward) of beatseqc W=48.
+        # float16 only stores values; never compute statistics or anything
+        # else in it (the float16 overflow that zeroed every input, NOTES 6).
         f = f.astype(np.float16)
         songs.append({"feats": f, "counts": z["counts"],
                       "trusted": z["trusted"], "id": str(z["id"]),
