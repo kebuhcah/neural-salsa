@@ -471,6 +471,10 @@ def main():
                     help="train on only the first N training songs (learning curve); 0 = all")
     ap.add_argument("--train-eval", type=int, default=16,
                     help="also score this many training songs, for the train/val gap; 0 = off")
+    ap.add_argument("--half-split", default="none", choices=["none", "eval", "leak"],
+                    help="measure the within-song leak (NOTES 14l): 'eval' scores held-out songs "
+                         "on their second half only; 'leak' also trains on their first half. "
+                         "Windows never straddle the midpoint, so no audio is shared")
     ap.add_argument("--seed0", type=int, default=0, help="first seed, so new seeds can be added")
     ap.add_argument("--out", default="data/arch_compare.json")
     ap.add_argument("--input", default="mel", choices=["mel", "chroma", "mel+chroma"],
@@ -518,6 +522,18 @@ def main():
         W = int(m.group(2)) if m.group(2) else args.window
         epochs = int(m.group(3)) if m.group(3) else args.epochs
         va_index = {int(si): make_index(songs, [si], W) for si in val_ids}
+        leak = []
+        if args.half_split != "none":
+            # Test windows lie wholly in the second half of each held-out song
+            # (first beat at or after the midpoint); with "leak", training also
+            # gets the windows that end before the midpoint. No window spans it.
+            for si, v in va_index.items():
+                if len(v) == 0:
+                    continue
+                mid = len(songs[si]["counts"]) // 2
+                va_index[si] = v[v[:, 1] - W + 1 >= mid]
+                if args.half_split == "leak":
+                    leak.append(v[v[:, 1] < mid])
         va_index = {i: v for i, v in va_index.items() if len(v) >= 64}
         per_seed, train_seeds = [], []
         t0 = time.time()
@@ -545,6 +561,10 @@ def main():
             npar = sum(p.numel() for p in model.parameters())
         else:
             tr = make_index(songs, tr_ids, W)
+            if leak:
+                tr = np.concatenate([tr] + leak)
+                print(f"  + {sum(len(x) for x in leak)} windows from the first halves of "
+                      f"held-out songs (--half-split leak)")
             tr_eval = {int(si): make_index(songs, [si], W) for si in tr_eval_ids}
             tr_eval = {i: v for i, v in tr_eval.items() if len(v) >= 64} or None
             for s in seeds_used:
