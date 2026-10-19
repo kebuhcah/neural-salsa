@@ -1818,6 +1818,61 @@ failure it fixes directly: an unaugmented model is perfect on a synthetic
 line-up in C and loses the beat in most other keys.
 
 **New default: log-mel + chroma with transposition** (masking optional).
+
+### 14l. The within-song leak: knowing the song is worth ~8 points
+
+Would a sub-song split (train on some sections of a song, test on others)
+be a fair way to get more data? It adds no training audio; what it changes
+is that every test section's song is also in training. Measured directly
+(`core/arch_compare.py --half-split`; 6 folds, best configuration, 1 seed;
+`data/cv_half_eval/`, `data/cv_half_leak/`): both conditions are scored on
+the same windows -- the **second half** of each held-out song, every test
+window wholly after the midpoint -- and "leak" also trains on the **first
+half** of those songs, every leaked window wholly before it. No audio is
+shared.
+
+| second halves of held-out songs | other songs only | + first half of the same song | change |
+|---|---|---|---|
+| per-window | 0.756 | **0.836** | **+0.080** (53/21 songs, p < 0.001) |
+| which-half | 0.776 | 0.849 | +0.073 (p < 0.001) |
+| song-level | 0.854 | **0.922** | **+0.068** (7 better / 0 worse, p 0.011) |
+| songs fully failed | 14 | **7** | |
+
+- **Knowing the song is worth ~8 points per window** and halves the fully
+  failed songs, with no shared audio -- from the same recording's mix, key,
+  tempo and repeated patterns. A within-song split would overstate
+  performance on new songs by about that much; song-held-out evaluation is
+  the honest one.
+- Fixed by seeing the first half: Miami, Otra Oportunidad, Dame Una
+  Oportunidad, Un Dia Yo, Welcome To The Party, Gotas De Lluvia -- several
+  long-standing hard cases.
+- The gain does not depend on how strongly harmony marks the 1 (+0.052 vs
+  +0.047; an early two-fold hint of a difference did not hold).
+- Implication: much of what is missing on a new song is song-specific and
+  learnable *from that song*. A candidate next step is **unsupervised
+  test-time adaptation**: decode the song, take its most confident stretches
+  as provisional labels, fine-tune briefly on them, decode again.
+
+### 14m. Tempo is nearly a wash
+
+Per-song tempo (median annotated beat interval): median 186 bpm, range
+130-247, middle half 178-200. Held-out CV results by tempo third:
+
+| | slowest (~167 bpm) | middle (~186) | fastest (~208) |
+|---|---|---|---|
+| baseline: which-half / song-level | 0.748 / 0.838 | 0.746 / 0.831 | **0.665** / 0.766 |
+| best (+chroma, transposition): which-half / song-level | 0.818 / 0.877 | 0.803 / 0.857 | **0.745** / 0.843 |
+
+- **Beat placement does not depend on tempo** (position within the half:
+  Spearman -0.04 baseline, 0.00 best) -- the 16-frames-per-beat resampling
+  works; even at 247 bpm a beat spans ~21 raw frames.
+- **The 1-vs-5 call is ~7-8 points worse for the fastest third**, in both
+  models, but not significantly (Spearman -0.15 / -0.19, p 0.14 / 0.06). At
+  song level the best model mostly absorbs it (0.843 vs 0.877; 2 fully
+  failed songs in the fastest third vs 2 in the slowest).
+- If real, more likely the music than the resampling: faster tracks may lean
+  on denser, percussion-driven arrangements, where percussion misleads the
+  models (13c, 14f). Tempo also travels with artist and style.
 Fixed on both seeds vs the baseline include Si Supieras and Todo Tiene Su
 Final; the train/held-out gap shrinks from ~0.31 to ~0.21 per window.
 
