@@ -481,6 +481,9 @@ def main():
                     help="model input features (chroma from build_chroma.py)")
     ap.add_argument("--aug", default="", help="training augmentation: comma list of "
                     "transpose, mask (see augment()); needs --input mel or mel+chroma")
+    ap.add_argument("--save-models", default=None, metavar="DIR",
+                    help="also save each trained model to DIR/<spec>_split<k>_s<seed>.pt "
+                         "(e.g. for experiments/adapt.py)")
     ap.add_argument("--save-logp", default=None, metavar="DIR",
                     help="also save each seed's per-song log-probs to DIR/<spec>_split<k>_s<seed>.npz "
                          "for ensemble.py")
@@ -569,8 +572,12 @@ def main():
             tr_eval = {i: v for i, v in tr_eval.items() if len(v) >= 64} or None
             for s in seeds_used:
                 raw, tr_out = {}, {}
-                out, npar = run(kind, W, songs, epochs, s, tr, va_index, raw=raw,
-                                train_index=tr_eval, train_out=tr_out)
+                out, npar, model = run(kind, W, songs, epochs, s, tr, va_index, raw=raw,
+                                       train_index=tr_eval, train_out=tr_out, return_model=True)
+                if args.save_models:
+                    d = Path(args.save_models); d.mkdir(parents=True, exist_ok=True)
+                    safe = spec.replace("*", "x").replace("@", "_w")
+                    torch.save(model.state_dict(), d / f"{safe}_split{k}_s{s}.pt")
                 per_seed.append(out)
                 train_seeds.append(tr_out)
                 save(s, raw)

@@ -45,6 +45,7 @@ data/ens/*
 data/probe_models/*
 data/bembe_models/*
 data/beatmachine/*
+data/adapt_models/*
 !data/*/README.md
 data/*.log
 data/*.pt
