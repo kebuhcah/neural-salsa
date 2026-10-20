@@ -363,7 +363,8 @@ def song_level(logp, beats, truth):
 
 
 def run(kind, W, songs, epochs, seed, tr, va_index, aux=0.3, micro=None,
-        return_model=False, raw=None, train_index=None, train_out=None):
+        return_model=False, raw=None, train_index=None, train_out=None,
+        eval_every=None, curve=None):
     """micro: activation-memory cap via gradient accumulation.
 
     The first conv keeps full time x mel resolution at 32 channels, so one
@@ -383,6 +384,7 @@ def run(kind, W, songs, epochs, seed, tr, va_index, aux=0.3, micro=None,
     torch.manual_seed(100 + seed)
     model = make_model(kind, W).to(DEV)
     opt = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
+    step = 0
     for _ in range(epochs):
         model.train(); nb = 0
         for X, y in batches(songs, tr, W, 128, rng, 0.0, 1.0):
@@ -404,7 +406,16 @@ def run(kind, W, songs, epochs, seed, tr, va_index, aux=0.3, micro=None,
                 (loss / chunks).backward()
             if CLIP:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), CLIP)
-            opt.step(); nb += 1
+            opt.step(); nb += 1; step += 1
+            if eval_every and curve is not None and step % eval_every == 0:
+                # Held-out (and some training) songs scored mid-training, for a
+                # learning curve over steps. evaluate() draws from its own fixed
+                # RNG, so this does not change the training trajectory.
+                point = {"step": step, "val": evaluate(model, songs, W, va_index, micro)}
+                if train_index:
+                    point["train"] = evaluate(model, songs, W, train_index, micro)
+                curve.append(point)
+                model.train()
             if nb >= 500:
                 break
     out = evaluate(model, songs, W, va_index, micro, raw=raw)
@@ -481,6 +492,9 @@ def main():
                     help="model input features (chroma from build_chroma.py)")
     ap.add_argument("--aug", default="", help="training augmentation: comma list of "
                     "transpose, mask (see augment()); needs --input mel or mel+chroma")
+    ap.add_argument("--eval-every", type=int, default=0, metavar="STEPS",
+                    help="also score held-out (and --train-eval) songs every STEPS training "
+                         "steps, saved as 'curves' in the results -- a learning curve over steps")
     ap.add_argument("--save-models", default=None, metavar="DIR",
                     help="also save each trained model to DIR/<spec>_split<k>_s<seed>.pt "
                          "(e.g. for experiments/adapt.py)")
@@ -538,7 +552,7 @@ def main():
                 if args.half_split == "leak":
                     leak.append(v[v[:, 1] < mid])
         va_index = {i: v for i, v in va_index.items() if len(v) >= 64}
-        per_seed, train_seeds = [], []
+        per_seed, train_seeds, curves = [], [], []
         t0 = time.time()
 
         def save(s, raw):
@@ -571,9 +585,11 @@ def main():
             tr_eval = {int(si): make_index(songs, [si], W) for si in tr_eval_ids}
             tr_eval = {i: v for i, v in tr_eval.items() if len(v) >= 64} or None
             for s in seeds_used:
-                raw, tr_out = {}, {}
+                raw, tr_out, curve = {}, {}, []
                 out, npar, model = run(kind, W, songs, epochs, s, tr, va_index, raw=raw,
-                                       train_index=tr_eval, train_out=tr_out, return_model=True)
+                                       train_index=tr_eval, train_out=tr_out, return_model=True,
+                                       eval_every=args.eval_every, curve=curve)
+                curves.append(curve)
                 if args.save_models:
                     d = Path(args.save_models); d.mkdir(parents=True, exist_ok=True)
                     safe = spec.replace("*", "x").replace("@", "_w")
@@ -587,6 +603,8 @@ def main():
                      "seed_ids": list(range(4)) if kind == "gru-saved" else seeds_used,
                      "minutes": round(mins, 1), "seeds": per_seed,
                      "train_seeds": train_seeds}
+        if any(curves):
+            res[spec]["curves"] = curves
         M = lambda k: np.mean([[v[k] for v in o.values()] for o in per_seed])
         Cnt = lambda f: np.mean([sum(f(v) for v in o.values()) for o in per_seed])
         seeds = " ".join(f"{np.mean([v['song'] for v in o.values()]):.3f}/"
