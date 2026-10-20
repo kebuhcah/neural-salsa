@@ -366,12 +366,20 @@ were computed on that array directly:
     sample = np.concatenate([songs[i]["feats"][:4000] for i in tr_ids[:24]])
     mean, std = float(sample.mean()), float(sample.std()) + 1e-6
 
-12.3M float16 values summed for the variance overflows -- float16 tops out at
-65504 and the true sum of squares is ~1e8. So **std came out `inf`**, and
-`(X - mean) / inf` made **every input exactly zero**. The model was being fed
-a constant. Loss therefore sat at exactly ln 8, the best achievable output
-when the input carries no information, and could not fit even the training
-set.
+The sample is 24 songs x 4000 frames x 128 mel bands = 12.3M float16
+values, and float16 tops out at 65504. `sample.std()` computes its own mean
+internally by summing the values *in float16* -- a true total of ~1.1e8
+(12.3M x ~8.8) -- so that sum overflows to infinity before any squaring
+happens (the squared deviations, summing to ~1.8e7, would have overflowed
+too). So **std came out `inf`**, and `(X - mean) / inf` made **every input
+exactly zero**. The model was being fed a constant. Loss therefore sat at
+exactly ln 8, the best achievable output when the input carries no
+information, and could not fit even the training set.
+
+`sample.mean()` was fine (8.82): NumPy accumulates float16 means in float32
+on purpose. `std`'s internal mean has no such protection. Reproduced on the
+real features: float16 mean 8.82 and std `inf`; float32 mean 8.82 and std
+1.20.
 
 numpy did emit `RuntimeWarning: overflow encountered in reduce`. It was
 filtered out of the logs by a `grep -v` meant to suppress unrelated noise.
