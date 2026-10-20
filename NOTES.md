@@ -1902,6 +1902,41 @@ meaningful), or as a teacher for other models. **Where it is not:** the
 offline song-level answer. Improving that needs new information -- more
 data, better inputs, or a true label for part of the song.
 
+### 14o. Training budget: held-out accuracy plateaus, no early-stopping gain
+
+The 2000-step budget (4 x 500; section 14e) had never been tuned. Learning
+curve over steps (`core/arch_compare.py --eval-every 250`, best configuration,
+6-fold CV, 1 seed, trained to 4000 steps; `data/cv_curve/`, report
+`tools/curve_report.py`); held-out songs and 16 training songs scored at
+every checkpoint:
+
+| steps | held-out per-window | song-level | train per-window | gap |
+|---|---|---|---|---|
+| 250 | 0.505 | 0.721 | 0.543 | 0.04 |
+| 500 | 0.683 | 0.831 | 0.772 | 0.09 |
+| 750 | 0.750 | 0.853 | 0.899 | 0.15 |
+| 1250 | **0.774** | 0.873 | 0.970 | 0.20 |
+| 2000 (default) | 0.766 | 0.837 | 0.988 | 0.22 |
+| 3000 | 0.757 | 0.839 | 0.990 | 0.23 |
+| 4000 | 0.773 | 0.867 | 0.995 | 0.22 |
+
+- **Held-out accuracy plateaus by ~1250 steps and stays flat to 4000** --
+  no U-shape where longer training hurts.
+- **Memorisation is benign here**: training accuracy reaches 0.99 by ~2000
+  steps and the gap grows to ~0.22, then stops, without costing held-out
+  accuracy. Stopping early cannot close the gap; only more general cues
+  (data, augmentation) can.
+- **Song-level jitters** 0.84-0.88 between checkpoints with no trend: the
+  noise level of one seed with nearly binary song outcomes.
+
+Honest early stopping (step count chosen on folds 0-2, reported on 3-5):
+chosen 1500 steps -> per-window 0.772 / song-level 0.812; default 2000 ->
+0.762 / 0.805; longest 4000 -> 0.774 / 0.825. All within the checkpoint
+noise. **Neither stopping early nor training longer helps.** Practical
+point: ~1500 steps reaches the plateau, so experiments could run ~25%
+faster for the same result (the default is left at 2000 to keep results
+comparable).
+
 ### 14m. Tempo is nearly a wash
 
 Per-song tempo (median annotated beat interval): median 186 bpm, range
