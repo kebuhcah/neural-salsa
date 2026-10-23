@@ -54,17 +54,19 @@ def summary(songs):
 def main(d):
     T, S = titles(), shifted()
     runs = defaultdict(dict)                       # size -> fold -> entry
+    specs = set()                                  # arch_compare --kinds spec, e.g. gru@24*4
     for f in sorted(Path(d).glob("*.json")):
         m = re.fullmatch(r"(full|n(\d+))_f(\d+)", f.stem)
-        entry = next(iter(json.load(open(f)).values()))
+        spec, entry = next(iter(json.load(open(f)).items()))
         runs[m.group(1)][int(m.group(3))] = entry
+        specs.add(spec)
 
     full = runs["full"]
     val = {si: r for e in full.values() for si, r in per_song(e).items()}
     trn = [summary(per_song(e, "train_seeds")) for e in full.values() if any(e.get("train_seeds", []))]
     s = summary(val)
     folds = [summary(per_song(e)) for e in full.values()]
-    print(f"== beatseq W=48, {len(full)}-fold CV, {s['n']} held-out songs "
+    print(f"== {', '.join(sorted(specs))}, {len(full)}-fold CV, {s['n']} held-out songs "
           f"(seeds per fold: {len(next(iter(full.values()))['seeds'])})")
     print(f"   per-window acc {s['acc']:.3f}   which-half {s['h']:.3f}   song-level {s['song']:.3f}   "
           f"songs >0.95: {s['exact']}/{s['n']}   flips (mean over seeds): {s['flips']:.1f}   "

@@ -5,7 +5,7 @@
 **Goal.** Predict the salsa **1** and **5** counts from audio. Secondary goal:
 learn NN training and interpretability on a problem with real structure.
 
-**Most reliable number: 6-fold cross-validation.** Best so far (section 14k): log-mel + chroma with transposition augmentation, **0.859-0.860** song-level over 100 held-out songs, 8-11 fully failed. The earlier baseline (section 14e): beatseq
+**Most reliable number: 6-fold cross-validation.** Best so far (section 14k): log-mel + chroma with transposition augmentation, **0.859-0.860** song-level over 100 held-out songs, 8-11 fully failed. A plain log-mel gru W=24 with the fixed readout (section 14p) ties it at song level (0.850) and beats the log-mel beatseq per window. The earlier baseline (section 14e): beatseq
 W=48 decodes **0.811** song-level over 100 held-out songs (65 above 0.95; 0.877
 on the 73 without annotated shifts). It scores 0.99 per window on its own
 training songs against 0.68 held out: heavily overfit, and still improving
@@ -615,6 +615,8 @@ log p(h) + log p(r) so the model cannot score without committing on h, and
 `halves` encodes the two halves separately and compares them. Neither helped.
 **The head is not the bottleneck.** The GRU variants do match at half the
 parameters, so the flatten head was mostly wasted capacity.
+(The GRU heads here used a readout whose backward direction saw only the
+last step; fixed in 14p, where gru and gruf gain 2-3 points per window.)
 
 ### Context: large, monotonic, still climbing (gru head, 4 epochs, 2 seeds)
 | W | 8-counts seen | acc | q (1<->5) | h | r |
@@ -1974,6 +1976,70 @@ features, which suit exactly this small-data, overfitting regime.
 **Best configuration so far: 4 gru W=24 seeds + 4 beatseq W=48 seeds.** The
 cost is mostly the gru (21 min per seed vs 6 for beatseq). Caveats: two
 splits of 16 songs; the remaining differences are a few songs.
+
+### 14p. GRU readout fix: the backward direction had seen half a beat
+
+Every GRU head (`gru`, `gruf`, `halves`, the `Bands` experts) summarised the
+window as `o[:, -1]`, the bidirectional GRU's output at the last time step.
+PyTorch stores each direction's output at the step where it was computed, and
+the backward pass *ends* at step 0, so the backward half of `o[:, -1]` had
+read only the last step -- 8 frames, half a beat. Checked directly: it equals
+`h_n[1]` at `o[:, 0]`, not `o[:, -1]`, and changing the first input step
+moves it by exactly 0. Fix: the readout is now `cat(h_n[0], h_n[1])`, both
+directions' final states (`core/arch_compare.py`, `GRU_READOUT`); parameter
+counts are unchanged. `--gru-readout last` reproduces the old behaviour, and
+every loader of a pre-fix checkpoint (`amor_w24_*`, `bembe_models/gru_*`)
+pins it.
+
+**A. Section 9's head comparison, rerun** (split 0, W=8, 3 epochs, 2 seeds;
+`data/gru_readout_w8_{last,final}.json`):
+
+| head | per-window | which-half | song-level | mean e |
+|---|---|---|---|---|
+| flatten (unaffected) | 0.698 | 0.741 | 0.890 | +1.02 |
+| gru, old -> fixed | 0.652 -> **0.686** | 0.711 -> **0.732** | 0.858 -> 0.890 | +1.59 -> +2.09 |
+| gruf, old -> fixed | 0.659 -> **0.679** | 0.719 -> **0.735** | 0.890 -> 0.890 | +1.29 -> +1.81 |
+| halves, old -> fixed | 0.664 -> 0.660 | 0.721 -> 0.720 | 0.890 -> 0.890 | +2.11 -> +1.93 |
+
+The whole-window GRU heads gain 2-3 points per window and close most of the
+gap to flatten at half the parameters; `halves`, which already contrasts the
+two halves directly, does not move. Section 9's verdict stands -- no head
+beats flatten -- but its GRU rows were handicapped.
+
+**B. 6-fold CV, gru W=24, 4 epochs, 1 seed, log-mel only**
+(`data/cv_gru_{last,final}/`), where the old backward pass saw 1 of 96 steps:
+
+| | per-window | which-half | song-level | >0.95 | flips | median e |
+|---|---|---|---|---|---|---|
+| beatseq W=48 baseline (14e) | 0.677 | 0.719 | 0.811 | 65/100 | 18 | +4.11 |
+| gru W=24, old readout | 0.736 | 0.757 | 0.823 | 71/101 | 19 | +3.56 |
+| gru W=24, fixed readout | 0.736 | 0.759 | **0.850** | 73/101 | 15 | **+4.15** |
+| best: beatseqc + chroma + transposition (14k) | 0.771 | 0.789 | 0.859 | 70/100 | 12.5 | +3.69 |
+
+Paired per song (`tools/cv_compare.py`):
+- **Fixed vs old readout:** per-window and which-half unchanged (p 0.68 /
+  0.996); **evidence e up +0.49 nats per song (54 up, 36 down, p 0.007)**;
+  song-level +0.027 (7 songs better, 3 worse, p 0.39); fully failed songs
+  19 -> 15. At W=24 the fix makes the GRU more confident in the right answer
+  rather than right more often.
+- **gru W=24 vs beatseq W=48, both log-mel:** the gru is better per window
+  (+0.058, p < 0.001) and on which-half (+0.038, p 0.007) -- true with the old
+  readout too, so this is not the fix. Song-level +0.037, not significant
+  (p 0.12). The CV baseline was never the GRU: beatseq was adopted for speed
+  (~3.5x) and the fixed splits disagreed about which was better (14b). Caveat:
+  the baseline ran 1500 steps x 2 seeds, these 2000 x 1; 14o puts 1500 at
+  the plateau, so the budget is unlikely to explain 6 points.
+- **Fixed gru vs the best model:** worse per window (-0.036, p 0.011) and on
+  which-half (-0.031, p 0.008), tied at song level (-0.011, p 0.83) --
+  without chroma or augmentation.
+
+**Consequences.** The fix is a real but modest gain: clearer at W=8 per
+window, more evidence at W=24. The bigger surprise is that the plain log-mel
+GRU at W=24 beats the log-mel beatseq per window under CV, so "the gain is
+context, not architecture" (14) needs a qualifier for the per-window metric.
+The obvious next run is the GRU with the best configuration's ingredients
+(chroma + transposition). Chroma would need its own branch rather than the
+trunk's convolution over frequency, as in beatseqc.
 
 ---
 
