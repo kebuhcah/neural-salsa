@@ -50,6 +50,22 @@ from train_phase import load_all, load_input, make_index, batches, DEV, FPB, N_M
 CLIP = 0.0          # >0 enables gradient-norm clipping
 AUG = set()         # training-time augmentation: {"transpose", "mask"}; see augment()
 N_CHROMA = 0        # trailing chroma columns in the input (12 with --input mel+chroma)
+# How a bidirectional GRU's sequence becomes one vector. "final": each
+# direction's final state (h_n), so both have read the whole window. "last":
+# the output at the last time step, o[:, -1] -- what every GRU model before
+# NOTES 14p used. Its backward half has seen only the last step (half a
+# beat), because PyTorch stores each direction's output at the step where it
+# was computed and the backward pass ends at step 0. Checkpoints trained that
+# way must be loaded with readout="last".
+GRU_READOUT = "final"
+
+
+def gru_summary(rnn, seq, readout):
+    """[B, T, C] -> [B, 2H]: one vector per window from a bidirectional GRU."""
+    o, h_n = rnn(seq)
+    if readout == "last":
+        return o[:, -1]
+    return torch.cat([h_n[0], h_n[1]], -1)       # forward final, backward final
 
 
 def _mel_shift_tables(n_mels=128, f_min=30.0, f_max=10000.0):
@@ -179,9 +195,10 @@ class Combined(nn.Module):
 
 
 class Model(nn.Module):
-    def __init__(self, kind, w_frames):
+    def __init__(self, kind, w_frames, readout=None):
         super().__init__()
         self.kind = kind
+        self.readout = readout or GRU_READOUT
         self.trunk = Trunk()
         C, T = self.trunk.out, max(w_frames // 8, 1)
         if kind in ("flatten", "factor"):
@@ -205,11 +222,10 @@ class Model(nn.Module):
             return self.mlp(z)
         seq = z.transpose(1, 2)                    # [B,T,C]
         if self.kind in ("gru", "gruf"):
-            o, _ = self.rnn(seq)
-            return self.drop(o[:, -1])
+            return self.drop(gru_summary(self.rnn, seq, self.readout))
         half = seq.shape[1] // 2
-        a, _ = self.rnn(seq[:, :half]); b, _ = self.rnn(seq[:, half:])
-        a, b = a[:, -1], b[:, -1]
+        a = gru_summary(self.rnn, seq[:, :half], self.readout)
+        b = gru_summary(self.rnn, seq[:, half:], self.readout)
         return self.drop(torch.cat([a, b, a - b], -1))
 
     def forward(self, x):
@@ -238,8 +254,9 @@ class Bands(nn.Module):
     predictor alone, and the gate weights are readable per song.
     """
 
-    def __init__(self, ch=(1, 16, 32, 64)):
+    def __init__(self, ch=(1, 16, 32, 64), readout=None):
         super().__init__()
+        self.readout = readout or GRU_READOUT
         nb, c = len(BAND_BINS), ch[-1]
         self.trunks = nn.ModuleList([Trunk(ch=ch) for _ in range(nb)])
         self.rnns = nn.ModuleList([nn.GRU(c, c, batch_first=True, bidirectional=True)
@@ -253,8 +270,7 @@ class Bands(nn.Module):
     def forward(self, x):
         zs, lps = [], []
         for (lo, hi), trunk, rnn, head in zip(BAND_BINS, self.trunks, self.rnns, self.heads):
-            o, _ = rnn(trunk(x[..., lo:hi + 1]).transpose(1, 2))
-            z = self.drop(o[:, -1])
+            z = self.drop(gru_summary(rnn, trunk(x[..., lo:hi + 1]).transpose(1, 2), self.readout))
             zs.append(z)
             lps.append(F.log_softmax(head(z), -1))
         g = F.softmax(self.gate(torch.cat(zs, -1)), -1) * len(BAND_BINS)
@@ -321,16 +337,17 @@ class BeatSeq(nn.Module):
         return self.head(self.drop(z[:, -1])), None, None       # target is the last beat
 
 
-def make_model(kind, W):
+def make_model(kind, W, readout=None):
+    """readout: GRU readout for the GRU-based kinds (see GRU_READOUT)."""
     if kind == "bands":
-        return Bands()
+        return Bands(readout=readout)
     if kind == "beatseq":
         return BeatSeq(W)
     if kind == "beatseqc":
         return BeatSeq(W, n_chroma=12)                           # needs --input mel+chroma
     if kind == "beatseqf":
         return BeatSeq(W, keep_freq=True)                        # mel, frequency kept
-    return Model(kind, W * FPB)
+    return Model(kind, W * FPB, readout=readout)
 
 
 def song_level(logp, beats, truth):
@@ -486,6 +503,9 @@ def main():
                     help="measure the within-song leak (NOTES 14l): 'eval' scores held-out songs "
                          "on their second half only; 'leak' also trains on their first half. "
                          "Windows never straddle the midpoint, so no audio is shared")
+    ap.add_argument("--gru-readout", default="final", choices=["final", "last"],
+                    help="how GRU heads summarise the window (see GRU_READOUT); 'last' is the "
+                         "pre-14p behaviour, whose backward direction saw only the last step")
     ap.add_argument("--seed0", type=int, default=0, help="first seed, so new seeds can be added")
     ap.add_argument("--out", default="data/arch_compare.json")
     ap.add_argument("--input", default="mel", choices=["mel", "chroma", "mel+chroma"],
@@ -504,7 +524,8 @@ def main():
     args = ap.parse_args()
 
     songs = load_input(args.input)
-    global AUG, N_CHROMA
+    global AUG, N_CHROMA, GRU_READOUT
+    GRU_READOUT = args.gru_readout
     AUG = {a for a in args.aug.split(",") if a}
     assert AUG <= {"transpose", "mask"}, f"unknown augmentation {AUG}"
     assert not AUG or args.input != "chroma", "augmentation needs the mel input"
@@ -570,7 +591,7 @@ def main():
                 path = DATA / f"amor_w24_s{s}.pt"
                 if not path.exists():
                     continue
-                model = Model("gru", W * FPB).to(DEV)
+                model = Model("gru", W * FPB, readout="last").to(DEV)   # pre-14p checkpoints
                 model.load_state_dict(torch.load(path, map_location=DEV))
                 raw = {}
                 per_seed.append(evaluate(model, songs, W, va_index, raw=raw))

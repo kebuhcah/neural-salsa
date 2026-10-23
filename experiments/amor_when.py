@@ -38,7 +38,7 @@ def ev(model, mask=None):
 
 E0, EH, EM = [], [], []
 for s in range(4):
-    m = Model("gru", W * FPB).to(DEV)
+    m = Model("gru", W * FPB, readout="last").to(DEV)
     m.load_state_dict(torch.load(DATA / f"amor_w24_s{s}.pt", map_location=DEV)); m.eval()
     E0.append(ev(m)); EH.append(ev(m, band_mask(*BANDS["high-mid 2.5-6k"], keep=False)))
     EM.append(ev(m, band_mask(*BANDS["mid 800-2.5k"], keep=False)))

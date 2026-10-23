@@ -33,6 +33,8 @@ import torch.nn.functional as F
 
 from ablation import BANDS, band_mask
 from arch_compare import Model, run, song_level
+import arch_compare
+arch_compare.GRU_READOUT = "last"   # the saved models predate the NOTES 14p readout fix
 from train_phase import load_all, make_index, batches, DEV, FPB
 
 TARGET = "Amor y Control"
@@ -78,7 +80,7 @@ models = {}
 for s in seeds:
     path = DATA / f"amor_w{W}_s{s}.pt"
     if a.reuse and path.exists():
-        model = Model(KIND, W * FPB).to(DEV)
+        model = Model(KIND, W * FPB, readout="last").to(DEV)
         model.load_state_dict(torch.load(path, map_location=DEV))
     else:
         tr = make_index(songs, tr_ids, W)
