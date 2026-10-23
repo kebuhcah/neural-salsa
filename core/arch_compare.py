@@ -19,6 +19,9 @@ Those share one conv trunk, so only the head differs. Two later variants
 change the body, aimed at what the Amor y Control investigation found
 (NOTES 13):
 
+  gruc      gru + a chroma branch: each trunk step's 8 frames of chroma
+            through a small dense layer, joined to the trunk features before
+            the GRU (needs --input mel+chroma; NOTES 14q)
   bands     one small trunk + GRU per frequency band, each predicting alone,
             combined by a learned per-window gate (readable per song)
   beatseq   per-beat encoder, then a transformer across beats; memory per
@@ -195,17 +198,26 @@ class Combined(nn.Module):
 
 
 class Model(nn.Module):
-    def __init__(self, kind, w_frames, readout=None):
+    def __init__(self, kind, w_frames, readout=None, n_chroma=0):
         super().__init__()
         self.kind = kind
         self.readout = readout or GRU_READOUT
         self.trunk = Trunk()
         C, T = self.trunk.out, max(w_frames // 8, 1)
+        # Chroma branch (gruc), as in BeatSeq: chroma is not a spectrum, so it
+        # skips the trunk's convolution over frequency. Each trunk time step
+        # covers 8 frames (half a beat); their 8 x 12 chroma values go through
+        # one dense layer and join that step's trunk features.
+        self.n_chroma = n_chroma
+        self.cenc = (nn.Sequential(nn.Linear(8 * n_chroma, 32), nn.ReLU())
+                     if n_chroma else None)
+        if self.cenc is not None:
+            C += 32
         if kind in ("flatten", "factor"):
             self.mlp = nn.Sequential(nn.Flatten(), nn.Dropout(0.3),
                                      nn.Linear(C * T, 256), nn.ReLU(), nn.Dropout(0.3))
             d = 256
-        elif kind in ("gru", "gruf"):
+        elif kind in ("gru", "gruf", "gruc"):
             self.rnn = nn.GRU(C, 128, batch_first=True, bidirectional=True)
             self.drop = nn.Dropout(0.3)
             d = 256
@@ -217,11 +229,18 @@ class Model(nn.Module):
                      else nn.Linear(d, 8))
 
     def embed(self, x):
+        chroma = None
+        if self.cenc is not None:
+            x, chroma = x[..., :-self.n_chroma], x[..., -self.n_chroma:]
         z = self.trunk(x)                          # [B,C,T]
         if self.kind in ("flatten", "factor"):
             return self.mlp(z)
         seq = z.transpose(1, 2)                    # [B,T,C]
-        if self.kind in ("gru", "gruf"):
+        if chroma is not None:
+            B, T = seq.shape[:2]
+            c = chroma.reshape(B, T, 8 * self.n_chroma)          # 8 frames per trunk step
+            seq = torch.cat([seq, self.cenc(c)], -1)             # [B,T,C+32]
+        if self.kind in ("gru", "gruf", "gruc"):
             return self.drop(gru_summary(self.rnn, seq, self.readout))
         half = seq.shape[1] // 2
         a = gru_summary(self.rnn, seq[:, :half], self.readout)
@@ -347,6 +366,8 @@ def make_model(kind, W, readout=None):
         return BeatSeq(W, n_chroma=12)                           # needs --input mel+chroma
     if kind == "beatseqf":
         return BeatSeq(W, keep_freq=True)                        # mel, frequency kept
+    if kind == "gruc":
+        return Model("gruc", W * FPB, readout=readout, n_chroma=12)   # needs --input mel+chroma
     return Model(kind, W * FPB, readout=readout)
 
 
