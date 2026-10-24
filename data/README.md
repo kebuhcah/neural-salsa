@@ -65,3 +65,5 @@ folders (one `full_f<k>.json` per fold).
 | `cv_chroma/`, `cv_melchroma/` | 14g | chroma inputs |
 | `cv_keepfreq/` | 14h | no frequency averaging |
 | `cv_aug_both/`, `cv_aug_transpose/`, `cv_aug_mask/` | 14k | augmentation |
+| `cv_ens_beatseqc/`, `cv_ens_gru/` | 14r | reruns behind the cross-architecture ensemble |
+| `cv_ens/<combo>/` | 14r | ensembles of those runs, from `tools/cv_ensemble.py` |

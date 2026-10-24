@@ -5,7 +5,7 @@
 **Goal.** Predict the salsa **1** and **5** counts from audio. Secondary goal:
 learn NN training and interpretability on a problem with real structure.
 
-**Most reliable number: 6-fold cross-validation.** Best so far (section 14k): log-mel + chroma with transposition augmentation, **0.859-0.860** song-level over 100 held-out songs, 8-11 fully failed. A gru W=24 (fixed readout, sections 14p-14q) ties it: 0.860 song-level with transposition on log-mel alone, 0.835 with chroma too; it beats the log-mel beatseq per window (+0.052, p 0.001, matched budget) but gains little from chroma and transposition. The two fail on different songs, so a cross-architecture ensemble is the next step. The earlier baseline (section 14e): beatseq
+**Most reliable number: 6-fold cross-validation.** Best so far (section 14k): log-mel + chroma with transposition augmentation, **0.859-0.860** song-level over 100 held-out songs, 8-11 fully failed. A gru W=24 (fixed readout, sections 14p-14q) ties it: 0.860 song-level with transposition on log-mel alone, 0.835 with chroma too; it beats the log-mel beatseq per window (+0.052, p 0.001, matched budget) but gains little from chroma and transposition. A cross-architecture ensemble (14r) lifts per-window accuracy to 0.818 (+0.022 over two beatseqc seeds, p < 0.001) but not song level (0.858-0.878 across combinations, no significant difference). The earlier baseline (section 14e): beatseq
 W=48 decodes **0.811** song-level over 100 held-out songs (65 above 0.95; 0.877
 on the 73 without annotated shifts). It scores 0.99 per window on its own
 training songs against 0.68 held out: heavily overfit, and still improving
@@ -2088,6 +2088,61 @@ needs reruns with `--save-logp`. Beatseq remains ~4x cheaper to train
 (173 vs 709 ms per step at batch 128; 81 M vs 477 M multiply-adds per
 window, because the GRU's trunk convolves the whole window at full
 resolution while beatseq downsamples each beat at once).
+
+### 14r. GRU + beatseqc ensemble: better windows, same songs
+
+Reruns of the two ~0.86 models with `--save-logp` (`ens_runs.sh`;
+`data/cv_ens_beatseqc/`, `data/cv_ens_gru/`, per-song log-probs in the
+local-only `data/cv_ens_logp/`): beatseqc W=48 + chroma + transposition,
+seeds 0-1 (`b0`, `b1`), and gru W=24 + transposition, seed 0 (`g0`). The gru
+partner is the log-mel one, not the gruc: it ties at song level (0.860 vs
+0.835) and gruc was overconfident (14q). The reruns reproduce the originals:
+beatseqc identically to `cv_aug_transpose`, the gru with the same song-level
+and per-window within 0.006 of `cv_gru_aug` (not significant).
+
+`tools/cv_ensemble.py` averages probabilities and scores every combination,
+single members included, on the beats all members cover (the W=48 subset), so
+the gru alone reads 0.848 here, not 0.860. 100 songs:
+
+    python tools/cv_ensemble.py data/cv_ens_logp data/cv_ens \
+        g0=gru_w24x4:0 b0=beatseqc_w48:0 b1=beatseqc_w48:1 \
+        --combos g0 b0 b1 b0+b1 g0+b0 g0+b1 g0+b0+b1
+
+| members | per-window | which-half | song-level | flips |
+|---|---|---|---|---|
+| g0 | 0.755 | 0.772 | 0.848 | 15 |
+| b0 | 0.775 | 0.792 | 0.859 | 12 |
+| b1 | 0.770 | 0.788 | 0.860 | 13 |
+| b0+b1 | 0.796 | 0.808 | 0.872 | 11 |
+| g0+b0 | 0.804 | 0.813 | 0.868 | 13 |
+| g0+b1 | 0.803 | 0.813 | **0.878** | 12 |
+| g0+b0+b1 | **0.818** | **0.825** | 0.858 | 14 |
+
+Paired per song (`tools/cv_compare.py data/cv_ens/...`):
+- **The gru adds real per-window accuracy.** g0+b0 vs b0: +0.029 per window
+  (p 0.001), +0.020 which-half (p 0.014). g0+b0+b1 vs b0+b1: +0.022 per
+  window, better on 44 songs and worse on 17 (p < 0.001); which-half +0.017
+  (p < 0.001). 0.818 is the best per-window number so far.
+- **Song level does not move.** Every song-level difference is 1-3 songs and
+  none is significant: g0+b0 vs b0 +0.009 (p 1.0), g0+b1 vs b0+b1 +0.006
+  (p 0.89), g0+b0+b1 vs b0+b1 -0.014, 0 songs better and 3 worse (p 0.11;
+  Yo No Se Mañana 1.00 -> 0.00, El Bembé, Toro Mata). Songs below 0.5 go
+  11 -> 14.
+- **A gru partner is worth a second beatseqc seed.** g0+b0 vs b0+b1:
+  +0.007 per window (p 0.21), -0.004 song-level (p 0.58). The different
+  failure profiles in 14q did not turn into songs the ensemble rescues.
+- **Adding the gru softens the evidence.** e falls 0.24 nats (g0+b0+b1 vs
+  b0+b1) to 0.37 nats (g0+b0 vs b0), p < 0.001: the gru disagrees often
+  enough to flatten the average where the decode stays right.
+
+**Consequences.** Cross-architecture ensembling improves the per-window
+classifier but not the song-level decode, which sits at ~0.86-0.88 with 11-15
+flips whatever is combined. The remaining flips are shared, not model
+variance: 9 of b0+b1's 11 flipped songs are also flipped by g0, and 7 of
+those 9 have annotated phase shifts (14c), which a single-phase decode
+cannot get right by construction. More members, gruc included (~2 h of
+reruns), are unlikely to help. The song level needs a different signal, not a
+bigger ensemble.
 
 ---
 
