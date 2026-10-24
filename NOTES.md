@@ -5,7 +5,7 @@
 **Goal.** Predict the salsa **1** and **5** counts from audio. Secondary goal:
 learn NN training and interpretability on a problem with real structure.
 
-**Most reliable number: 6-fold cross-validation.** Best so far (section 14k): log-mel + chroma with transposition augmentation, **0.859-0.860** song-level over 100 held-out songs, 8-11 fully failed. A plain log-mel gru W=24 with the fixed readout (section 14p) ties it at song level (0.850) and beats the log-mel beatseq per window. The earlier baseline (section 14e): beatseq
+**Most reliable number: 6-fold cross-validation.** Best so far (section 14k): log-mel + chroma with transposition augmentation, **0.859-0.860** song-level over 100 held-out songs, 8-11 fully failed. A gru W=24 (fixed readout, sections 14p-14q) ties it: 0.860 song-level with transposition on log-mel alone, 0.835 with chroma too; it beats the log-mel beatseq per window (+0.052, p 0.001, matched budget) but gains little from chroma and transposition. The two fail on different songs, so a cross-architecture ensemble is the next step. The earlier baseline (section 14e): beatseq
 W=48 decodes **0.811** song-level over 100 held-out songs (65 above 0.95; 0.877
 on the 73 without annotated shifts). It scores 0.99 per window on its own
 training songs against 0.68 held out: heavily overfit, and still improving
@@ -2040,6 +2040,54 @@ context, not architecture" (14) needs a qualifier for the per-window metric.
 The obvious next run is the GRU with the best configuration's ingredients
 (chroma + transposition). Chroma would need its own branch rather than the
 trunk's convolution over frequency, as in beatseqc.
+
+### 14q. The GRU with the best configuration's ingredients: a tie, not a new best
+
+Three 6-fold CV runs, 1 seed each, 2000 steps (`gru_next.sh`; `data/cv_gruc_aug/`,
+`data/cv_gru_aug/`, `data/cv_beatseq_2k/`). `gruc` is the GRU with a chroma
+branch: each trunk step's 8 frames x 12 chroma values go through a dense
+layer (96 -> 32) and join the trunk features before the GRU, so chroma skips
+the convolution over frequency, as in beatseqc (321,000 parameters).
+
+| model | per-window | which-half | song-level | >0.95 | flips | median e |
+|---|---|---|---|---|---|---|
+| beatseq W=48, 1500 steps x 2 seeds (14e) | 0.677 | 0.719 | 0.811 | 65/100 | 18 | +4.11 |
+| beatseq W=48, 2000 steps x 1 seed | 0.682 | 0.726 | 0.799 | 68/100 | 20 | +4.47 |
+| gru W=24 (14p) | 0.736 | 0.759 | 0.850 | 73/101 | 15 | +4.15 |
+| gru W=24 + transposition | 0.749 | 0.769 | **0.860** | 74/101 | 15 | +3.85 |
+| gruc W=24 + chroma + transposition | **0.757** | **0.772** | 0.835 | 72/101 | 17 | +4.37 |
+| best: beatseqc + chroma + transposition, 2 seeds (14k) | 0.771 | 0.789 | 0.859 | 70/100 | 12.5 | +3.69 |
+
+Paired per song (`tools/cv_compare.py`):
+- **The GRU's lead over beatseq survives a matched budget.** Beatseq at 2000
+  steps does no better than at 1500 (per-window -0.005, p 0.67), and the gru
+  beats it by +0.052 per window (p 0.001) and +0.031 on which-half (p 0.026);
+  song-level +0.049, not significant (p 0.11). The 14p caveat is resolved.
+- **Augmentation helps the GRU only a little.** Against the plain gru:
+  transposition +0.014 per window (p 0.07), chroma + transposition +0.021
+  (p 0.026); which-half +0.011 / +0.013 (not significant); song-level
+  unchanged (+0.010 / -0.014). For beatseq the same ingredients were worth
+  +0.094 per window. Chroma adds less than a point on top of transposition.
+- **No new best.** Against beatseqc + chroma + transposition, the gruc is
+  -0.015 per window (p 0.22), -0.018 on which-half (p 0.12), -0.025 song-level
+  (p 0.60): a statistical tie. Its evidence e is higher (+0.35 nats, p 0.048):
+  more confident where right, without being right more often. The gru with
+  transposition ties at song level (0.860 vs 0.859). The best model's fewer
+  fully failed songs (8 vs 15-17) partly reflect its 2-seed average, which
+  turns a one-seed flip into 0.5 instead of 0.
+- **Different songs fail.** The gruc loses Que Te Vas (both versions), Amor y
+  Control and Llorarás, which beatseqc decodes; it gains Acid, Otra
+  Oportunidad, Welcome To The Party and Volando Entre Tus Brazos.
+
+**Consequences.** Two architectures now reach ~0.86 song-level by different
+routes: beatseq needs chroma and transposition to get there, the GRU nearly
+gets there on log-mel alone and gains little from them. They fail on
+different songs, which is when ensembling paid before (14b). None of these
+CV runs saved per-song log-probabilities, so a cross-architecture ensemble
+needs reruns with `--save-logp`. Beatseq remains ~4x cheaper to train
+(173 vs 709 ms per step at batch 128; 81 M vs 477 M multiply-adds per
+window, because the GRU's trunk convolves the whole window at full
+resolution while beatseq downsamples each beat at once).
 
 ---
 
