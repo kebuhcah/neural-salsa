@@ -20,6 +20,7 @@ root.
 | `chroma/` | beat-synchronous chroma (12 pitch classes) | 25 MB | `local/build_chroma.py` |
 | `explorer/` | spectrogram browser pages, spoken-count clips, `stems/` | 530 MB | `tools/spectro_explorer.py` |
 | `ens/` | per-song predictions saved for ensembling | small | `core/arch_compare.py --save-logp` |
+| `cv_ens_logp/` | CV per-song predictions for cross-model ensembles (14r) | ~50 MB | `core/arch_compare.py --folds --save-logp` |
 | `probe_models/` | models trained on all songs, for probes | 11 MB | `core/train_full.py` |
 | `bembe_models/` | models with El Bembe held out | 9 MB | `local/bembe_train.py` |
 | `beatmachine/` | Salsa Beat Machine patterns + samples | 2 MB | downloaded (NOTES 15) |

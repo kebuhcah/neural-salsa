@@ -42,6 +42,7 @@ data/features/*
 data/chroma/*
 data/explorer/*
 data/ens/*
+data/cv_ens_logp/*
 data/probe_models/*
 data/bembe_models/*
 data/beatmachine/*
