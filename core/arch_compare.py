@@ -53,13 +53,25 @@ from train_phase import load_all, load_input, make_index, batches, DEV, FPB, N_M
 CLIP = 0.0          # >0 enables gradient-norm clipping
 AUG = set()         # training-time augmentation: {"transpose", "mask"}; see augment()
 N_CHROMA = 0        # trailing chroma columns in the input (12 with --input mel+chroma)
-# How a bidirectional GRU's sequence becomes one vector. "final": each
-# direction's final state (h_n), so both have read the whole window. "last":
-# the output at the last time step, o[:, -1] -- what every GRU model before
-# NOTES 14p used. Its backward half has seen only the last step (half a
-# beat), because PyTorch stores each direction's output at the step where it
-# was computed and the backward pass ends at step 0. Checkpoints trained that
-# way must be loaded with readout="last".
+# How a bidirectional GRU's outputs become the one vector the classifier reads
+# (see gru_summary). The GRU reads the window's time steps in both directions:
+# forward, from the first step to the last, and backward, from the last step
+# to the first.
+#
+# "final" (the default): join each direction's final state, h_n[0] and
+# h_n[1]. Each of them has read every step of the window.
+#
+# "last": take the output at the last time step, o[:, -1]. Every GRU model
+# before NOTES 14p did this, and it is lopsided. PyTorch stores each
+# direction's output under the step where it was computed, so o[:, -1] joins
+# the forward direction after it has read the whole window with the backward
+# direction after it has read only the last step -- half a beat, at the
+# trunk's 2 steps per beat.
+#
+# Both give a vector of the same size, so a checkpoint loads under either
+# readout without an error. Checkpoints trained before 14p (amor_w24_*.pt,
+# bembe_models/gru_*) must be loaded with readout="last"; under "final" they
+# run but predict wrongly. --gru-readout overrides this default.
 GRU_READOUT = "final"
 
 
