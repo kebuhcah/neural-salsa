@@ -28,16 +28,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from train_phase import Net, load_all, make_index, batches, DEV, FPB  # noqa: E402
-
-# Mel-bin ranges, inclusive, for 128 mels spanning 30 Hz - 10 kHz at 22.05 kHz.
-BANDS = {
-    "bass <250Hz":      (0, 11),
-    "low-mid 250-800":  (12, 33),
-    "mid 800-2.5k":     (34, 69),
-    "high-mid 2.5-6k":  (70, 105),
-    "high >6k":         (106, 127),
-}
+from train_phase import Net, load_all, make_index, batches, DEV, FPB, BANDS  # noqa: E402
 INSTR = {
     "bass <250Hz":     "bass tumbao, bombo",
     "low-mid 250-800": "conga fundamentals, piano low",

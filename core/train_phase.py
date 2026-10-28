@@ -29,6 +29,15 @@ FEAT = DATA / "features"
 DEV = "mps" if torch.backends.mps.is_available() else "cpu"
 FPB = 16
 N_MELS = 128
+# Mel-bin ranges, inclusive, for 128 mels spanning 30 Hz - 10 kHz at 22.05 kHz:
+# the five bands of the frequency ablation (NOTES 8) and the Bands model.
+BANDS = {
+    "bass <250Hz":      (0, 11),
+    "low-mid 250-800":  (12, 33),
+    "mid 800-2.5k":     (34, 69),
+    "high-mid 2.5-6k":  (70, 105),
+    "high >6k":         (106, 127),
+}
 
 
 def load_all():

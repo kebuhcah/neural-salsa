@@ -48,7 +48,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from train_phase import load_all, load_input, make_index, batches, DEV, FPB, N_MELS
+from train_phase import load_all, load_input, make_index, batches, DEV, FPB, N_MELS, BANDS
 
 CLIP = 0.0          # >0 enables gradient-norm clipping
 AUG = set()         # training-time augmentation: {"transpose", "mask"}; see augment()
@@ -254,10 +254,8 @@ class Model(nn.Module):
         return self.head(z), None, None
 
 
-# Mel-bin ranges of the five ablation bands (ablation.BANDS), inclusive:
-# bass, low-mid, mid, high-mid, high. Duplicated rather than imported because
-# ablation.py imports train_phase's Net and would pull it in here.
-BAND_BINS = [(0, 11), (12, 33), (34, 69), (70, 105), (106, 127)]
+# Mel-bin ranges of the five ablation bands, inclusive, low to high.
+BAND_BINS = list(BANDS.values())
 
 
 class Bands(nn.Module):
