@@ -29,6 +29,8 @@ ap.add_argument("--epochs", type=int, default=4)
 ap.add_argument("--seeds", default="0,1")
 ap.add_argument("--out", default="data/probe_models")
 a = ap.parse_args()
+assert a.kind not in ("beatseqc", "gruc") or a.input == "mel+chroma", \
+    f"--kind {a.kind} needs --input mel+chroma"   # as in arch_compare.main
 
 songs = load_input(a.input)
 ac.AUG = {x for x in a.aug.split(",") if x}

@@ -554,6 +554,13 @@ def main():
                          "for ensemble.py")
     args = ap.parse_args()
 
+    # The chroma kinds split the last 12 input columns off as chroma; on any
+    # other input they would silently take the top 12 mel bins instead.
+    for spec in args.kinds.split(","):
+        kind = re.match(r"[\w-]+", spec).group(0)
+        assert kind not in ("beatseqc", "gruc") or args.input == "mel+chroma", \
+            f"--kinds {kind} needs --input mel+chroma"
+
     songs = load_input(args.input)
     global AUG, N_CHROMA, GRU_READOUT
     GRU_READOUT = args.gru_readout
