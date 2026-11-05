@@ -88,6 +88,8 @@ python tools/phase_from_audio.py data/short_s0.json        # % of W-beat stretch
 python tools/transition_profile.py b48='data/cv_ens_logp/beatseqc_w48_splitcv6.*_s0.npz'
                                    # accuracy and confidence around shifts, gaps, section changes, intros
 python tools/calibrate.py data/cv_wsweep_logp    # per-fold temperatures, cross-fitted; NLL/ECE before and after
+python tools/lock_latency.py data/cv_wsweep_logp data/cv_wsweep/temperatures.json
+                                   # forward filter: accuracy and lock vs beats heard, many start points
 ```
 
 **Ensemble** saved predictions:

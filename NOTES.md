@@ -67,21 +67,13 @@ notching it out fixes every seed (section 13a).
   the phase is a property of the *song*.
 
 ### What is open
-- **Lock latency, redone** (sections 5, 7, 14s): run the forward filter over
-  the 14s models' saved per-window outputs (`data/cv_wsweep_logp/`, no
-  retraining) and measure beats until correct, confident and stable. Fix
-  first:
-  - calibrate: done (14t), with per-fold temperatures in
-    `data/cv_wsweep/temperatures.json`;
-  - count total beats of audio heard (section 7 started counting after the
-    first full window, so its "5 beats" was ~13);
-  - start from many points in each song, not only the intro;
-  - keep the filter honest (stride or tempering; overlapping windows are not
-    independent evidence);
-  - report separately for steady state, after +4 shifts and after section
-    changes.
-  Short windows plus a filter are the promising combination: they recover
-  from shifts on the shift beat.
+- **Lock latency** (14u, done once): short windows plus a filter beat long
+  windows at every beat count, but plateau at ~0.80 with 13-16% wrong
+  commitments, which are whole-song 1<->5 inversions. Open:
+  - an audio-dependent reset hazard, for following shifts;
+  - a temper that changes over time, or stride;
+  - finding and fixing the inverted songs (the song-level problem is the
+    asymptote).
 - **Anticipation** (14s): sections change on the 1 (35% of novelty peaks),
   but no model gets more accurate after a change. Candidates: a filter whose
   reset probability depends on the audio, or an auxiliary section-boundary
@@ -2354,6 +2346,93 @@ per window), and T would sharpen them. The temperatures are in
   calibrated there too. A long window's confident error after a shift is a
   wrong belief, not a temperature problem. This is another argument for short
   windows under a filter, whose reset probability can absorb the shift.
+
+### 14u. Lock latency, redone: short windows plus a filter beat long windows
+
+`tools/lock_latency.py` reruns section 7 on the 14s models' saved
+predictions, calibrated as in 14t. Output is in
+`data/cv_wsweep/lock_latency.{txt,json}`. The setup:
+
+- **Listeners.** A listener starts every 4 beats through each song, wherever
+  64 trusted beats follow; that gives 12,545 steady-state listeners over 101
+  songs.
+- **The clock.** It counts beats of audio heard from the start. A W-beat
+  model has no output until beat W (windows reaching back before the start
+  are blanked), and the filter's belief stays uniform until then.
+- **The filter.** It is section 7's: advance one count per beat, and reset
+  onto count 1 with probability 6e-4 per beat, the corpus rate of shifts.
+- **Tempering.** Likelihoods are raised to a power a, cross-fitted by fold to
+  minimise the filter's NLL over beats 1-64.
+- **Groups and averaging.** Steady-state listeners have no shift or novelty
+  peak nearby (the other groups are in the .txt). Means are song-weighted.
+
+**Accuracy of the filter's count after t beats heard, steady state.** In
+brackets is the model's own window with no filter. "--" means no output yet.
+
+| model | t=4 | 8 | 16 | 24 | 32 | 48 | 64 |
+|---|---|---|---|---|---|---|---|
+| beatseqc W=4 | 0.64 (0.64) | 0.70 (0.64) | **0.77** (0.65) | **0.79** (0.64) | 0.79 | **0.80** (0.64) | 0.81 |
+| gru W=4 | 0.64 (0.64) | 0.70 (0.64) | 0.76 (0.64) | 0.78 (0.64) | 0.79 | 0.80 (0.64) | 0.80 |
+| beatseqc W=8 | -- | 0.69 (0.69) | 0.75 (0.69) | 0.77 (0.69) | 0.79 | 0.80 (0.68) | 0.81 |
+| gru W=8 | -- | 0.70 (0.70) | 0.75 (0.70) | 0.77 (0.70) | 0.78 | 0.80 (0.70) | 0.81 |
+| beatseqc W=16 | -- | -- | 0.72 (0.72) | 0.76 (0.71) | 0.77 | 0.79 (0.71) | 0.79 |
+| gru W=16 | -- | -- | 0.74 (0.74) | 0.76 (0.74) | 0.78 | 0.80 (0.74) | 0.81 |
+| beatseqc W=24 | -- | -- | -- | 0.74 (0.74) | 0.77 | 0.78 (0.73) | 0.79 |
+| gru W=24 | -- | -- | -- | 0.76 (0.76) | 0.78 | 0.79 (0.76) | 0.81 |
+| beatseqc W=48 | -- | -- | -- | -- | -- | 0.76 (0.76) | 0.78 |
+
+These steady-state listeners sit on somewhat easier stretches than the CV
+average (beatseqc W=4's window scores 0.64 here against 0.60 overall), so
+compare rows within this table, not with 14s.
+
+**What it shows:**
+
+- **At every t, the shortest window that has produced output, plus the
+  filter, is as good as or better than anything else.** After 16 beats,
+  beatseqc W=4 + filter reaches 0.77. The best long single window gets 0.74
+  (gru W=16, on the same listeners) and 0.76 only after 24-48 beats. After
+  48 beats, W=4 + filter gives 0.80 against 0.76 for beatseqc W=48. The
+  filter replaces the long window's memory and is cheaper: it does not need
+  the beats before the listener joined.
+- **Everything converges on ~0.80 by 48-64 beats.** That ceiling is the
+  song-level problem returning. A filter that has heard enough is
+  effectively a song-level decode, and it inherits song-level's 1<->5
+  inversions: 13-16% of confident commitments are wrong (below), matching
+  the 14-20% of songs that song level gets wrong. So song level is not
+  irrelevant to the dancer's question. It is the asymptote of lock latency;
+  its errors are the confident wrong locks.
+- **Locking at 0.9 confidence is slow**: medians of 47-60 beats, and only
+  51-65% of listeners lock within 64. The cross-fitted temper is very low (a
+  = 0.05-0.18, against 1/W = 0.25 for W=4). The filter ends up
+  *under*confident on average (conf - acc -0.01 to -0.06, ECE 0.04-0.12).
+  A low a is what minimises NLL when some songs are confidently inverted:
+  errors are correlated far beyond one window (section 7's finding, now
+  under calibration too). A constant a cannot be fast on good songs and
+  cautious on inverted ones.
+- **Commitments** (first time confidence holds at 0.9 or above for 4 beats,
+  right or wrong) come after a median of 41-58 beats, and 13-16% of them
+  are wrong in steady state. Intros and section changes are no worse than
+  steady state (4-13%).
+- **Following a +4 shift is slow and few shifts qualify.** Only 45 of the
+  54 shifts have 32 trusted beats before and 64 after. 8 beats after the
+  shift, the filter is right 41-56% of the time (W <= 24; beatseqc W=48,
+  started 32 beats before the shift, has no output until 15 beats after it). Its own window does better
+  at first (e.g. beatseqc W=8: 0.57 window vs 0.51 filter), because the
+  filter's prior holds the old phase. About a third of the commitments after
+  a shift are wrong. The reset probability (6e-4) is far too low to absorb
+  a shift quickly; raising it costs stability everywhere else. An
+  audio-dependent reset, for instance at novelty peaks, is the natural fix.
+
+**Consequences.** Use a short-window model (W=4-8) with a filter as the
+dancer model: as accurate as any configuration at every beat count, and
+calibrated going in. What limits it now:
+
+1. Confident 1<->5 inversions of whole songs. They cap accuracy at ~0.80 and
+   force the temper low. These are the song-level failures of sections
+   10-14r: the cause is in the classifier, not the filter.
+2. A constant temper and reset rate. Next: an audio-dependent reset hazard
+   from novelty, and a temper that depends on how long the filter has run,
+   or stride as in section 7.
 
 ---
 
