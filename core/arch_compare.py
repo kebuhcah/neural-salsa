@@ -384,9 +384,11 @@ def make_model(kind, W, readout=None):
 def song_level(logp, beats, truth):
     """Batch decoding: one phase for the whole song, chosen by every window.
 
-    Per-window accuracy is a proxy (NOTES section 10): phase advances
-    deterministically, so the song's labelling is fixed by one of 8
-    hypotheses. Scored against the actual beat index rather than list
+    A secondary diagnostic: it answers "what was this song's phase?", offline,
+    while per-window accuracy -- the headline -- answers how well a short
+    stretch of audio identifies the count (NOTES START HERE, sections 5 and
+    10). Phase advances deterministically, so the song's labelling is fixed by
+    one of 8 hypotheses, and every window votes for one. Scored against the actual beat index rather than list
     position, because untrusted windows leave gaps in the index.
 
     song   accuracy of the decoded labelling

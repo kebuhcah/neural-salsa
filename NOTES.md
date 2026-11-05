@@ -2,10 +2,24 @@
 
 ## START HERE: state of play
 
-**Goal.** Predict the salsa **1** and **5** counts from audio. Secondary goal:
-learn NN training and interpretability on a problem with real structure.
+**Goal.** Predict the salsa **1** and **5** counts from a short stretch of
+audio, as a dancer must: which count is this beat, and how many beats of
+listening does it take to know? Secondary goal: learn NN training and
+interpretability on a problem with real structure.
 
-**Most reliable number: 6-fold cross-validation.** Best so far (section 14k): log-mel + chroma with transposition augmentation, **0.859-0.860** song-level over 100 held-out songs, 8-11 fully failed. A gru W=24 (fixed readout, sections 14p-14q) ties it: 0.860 song-level with transposition on log-mel alone, 0.835 with chroma too; it beats the log-mel beatseq per window (+0.052, p 0.001, matched budget) but gains little from chroma and transposition. A cross-architecture ensemble (14r) lifts per-window accuracy to 0.818 (+0.022 over two beatseqc seeds, p < 0.001) but not song level (0.858-0.878 across combinations, no significant difference). The earlier baseline (section 14e): beatseq
+**Focus (from 2026-11-04): window-level accuracy, not song level.** The
+headline metrics are per-window accuracy and which-half (1 vs 5) as a function
+of beats heard, the question section 5 posed. Sections 10-14r judged models by
+song-level decoding instead -- one phase for a whole song, chosen by votes from
+every window -- which answers a different, offline question ("what was this
+song's phase?"). Their per-window numbers are all recorded and remain valid;
+read their conclusions with that in mind (14r: the ensemble is the best
+per-window result so far though song level did not move; 14p: the readout fix
+changed song level only). The caveat for everything below: the models read
+24-48 beats (8-16+ s), so their per-window numbers answer "given W beats", not
+"how quickly". The accuracy-vs-beats curve under CV is queued (section 14s).
+
+**Most reliable number: 6-fold cross-validation.** Per window, 100 held-out songs: a cross-architecture ensemble of gru W=24 + 2 beatseqc W=48 seeds reaches **0.818** (which-half 0.825; 14r), +0.022 over two beatseqc seeds (p < 0.001). Best single models: beatseqc W=48 + chroma + transposition **0.771** (which-half 0.789; 14k), gruc W=24 + chroma + transposition 0.757, gru W=24 + transposition 0.749 (14q). At song level these all tie at 0.835-0.878. The earlier baseline (section 14e): beatseq
 W=48 decodes **0.811** song-level over 100 held-out songs (65 above 0.95; 0.877
 on the 73 without annotated shifts). It scores 0.99 per window on its own
 training songs against 0.68 held out: heavily overfit, and still improving
@@ -25,9 +39,10 @@ original W=8 model scored 0.894; chance is 0.125.
 Song-level works at all because phase advances deterministically and
 hundreds of weak per-beat votes aggregate into one answer (section 10).
 
-**The single most important thing to know.** Most of this session optimised
-*per-window accuracy*, which is the wrong metric. Section 10 explains why.
-Per-window numbers in sections 6-9 are real but measure a proxy. The context
+**History of the metric.** Sections 6-9 optimised *per-window accuracy*.
+Section 10 then showed that song-level decoding scores far higher and called
+per-window "the wrong metric"; that holds for the song-phase question, not for
+the dancer's question this project now centres on (see Focus above). The context
 sweep has now been re-run at song level (section 13): gru W=24 decodes 0.923
 against 0.858 at W=8, a gain carried entirely by three songs. Architectures
 were then compared at song level (section 14): the gain comes from context
@@ -52,9 +67,21 @@ notching it out fixes every seed (section 13a).
   the phase is a property of the *song*.
 
 ### What is open
-- **Overfitting -- the main target** (section 14e): 0.99 per window on
-  training songs vs 0.68 held out; the learning curve still rises. Judge
-  everything by 6-fold CV against 0.811. In order:
+- **How many beats does it take?** (section 14s, queued) 6-fold CV of
+  per-window accuracy and which-half against window length, W = 4-48 beats,
+  for beatseqc + chroma + transposition and gru + transposition, each at its
+  reference training budget. Section 14d measured this once, on two splits
+  with older models; the gru curve stops at W=24 (beyond that it needs
+  micro-batching, which changes BatchNorm -- section 9).
+- **Lock latency, redone** (sections 5, 7): run the forward filter over the
+  new models' per-window outputs and measure beats until correct, confident
+  and stable. Fix first: count total beats of audio heard (section 7 started
+  counting after the first full window, so its "5 beats" was ~13); start
+  from many points in each song, not only the intro; keep the filter honest
+  (stride or tempering; overlapping windows are not independent evidence).
+- **Overfitting** (section 14e): 0.99 per window on training songs vs 0.68
+  held out; the learning curve still rises. Judge everything by 6-fold CV,
+  per window and which-half first. In order:
   1. Augmentation on log-mel + chroma (beatseqc): transposition (roll
      chroma by k semitones, shift mel to match) for key invariance;
      frequency/band masking against reliance on percussion. Later, if it
@@ -108,9 +135,10 @@ for the repo layout and the npz data contract.
 ---
 
 
-Goal: predict the salsa **1** and **5** counts from audio (spectrogram in,
-timestamps out). Secondary goal: learn NN training and interpretability on a
-problem with real musical structure.
+Goal: predict the salsa **1** and **5** counts from a short stretch of audio
+(spectrogram in, the count of each beat out), and measure how few beats it
+takes. Secondary goal: learn NN training and interpretability on a problem
+with real musical structure.
 
 ---
 
@@ -677,6 +705,12 @@ accumulation genuinely free, which large windows need.
 ---
 
 ## 10. Per-window accuracy was the wrong metric
+
+*Note (2026-11-04): "wrong" for the question this section asks -- the phase
+of a whole song, decoded offline from every window. For the dancer's question
+(section 5: how fast can you tell from a short stretch?) per-window accuracy
+is the right metric again, and it is the project's headline from here on
+(START HERE, Focus).*
 
 `experiments/bridge_test.py`. Three readings of the same model posteriors:
 

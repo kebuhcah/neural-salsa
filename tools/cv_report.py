@@ -5,8 +5,9 @@ Reads arch_compare.py --folds results:
   data/cv/full_f<k>.json   all training songs (the headline)
   data/cv/n<N>_f<k>.json   only N training songs (learning curve)
 
-Reports, over all held-out songs: per-window accuracy, song-level accuracy,
-flips and median e, with the spread across folds; the train/val gap (the
+Reports, over all held-out songs: per-window accuracy and which-half (the
+headline), then song-level accuracy, flips and median e, with the spread
+across folds; the train/val gap (the
 same metrics on songs the model trained on); and the learning curve. Songs
 with annotated 4-beat shifts (section 14c) are marked, since single-phase
 decoding cannot get them right.
@@ -71,13 +72,14 @@ def main(d):
     print(f"   per-window acc {s['acc']:.3f}   which-half {s['h']:.3f}   song-level {s['song']:.3f}   "
           f"songs >0.95: {s['exact']}/{s['n']}   flips (mean over seeds): {s['flips']:.1f}   "
           f"median e {s['e_med']:+.2f}")
-    print(f"   across folds: song-level {min(f['song'] for f in folds):.3f}-{max(f['song'] for f in folds):.3f}, "
-          f"per-window {min(f['acc'] for f in folds):.3f}-{max(f['acc'] for f in folds):.3f}")
+    print(f"   across folds: per-window {min(f['acc'] for f in folds):.3f}-{max(f['acc'] for f in folds):.3f}, "
+          f"song-level {min(f['song'] for f in folds):.3f}-{max(f['song'] for f in folds):.3f}")
     n_shift = [si for si in val if S[si]]
     clean = {si: r for si, r in val.items() if not S[si]}
     cs = summary(clean)
-    print(f"   {len(n_shift)} songs have annotated shifts; without them: song-level {cs['song']:.3f}, "
-          f">0.95: {cs['exact']}/{cs['n']}, flips {cs['flips']:.1f}")
+    print(f"   {len(n_shift)} songs have annotated shifts; without them: per-window {cs['acc']:.3f}, "
+          f"which-half {cs['h']:.3f}, song-level {cs['song']:.3f}, >0.95: {cs['exact']}/{cs['n']}, "
+          f"flips {cs['flips']:.1f}")
 
     if trn:
         t = {k: np.mean([x[k] for x in trn]) for k in ("acc", "h", "song", "e_med")}

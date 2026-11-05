@@ -21,6 +21,7 @@ root.
 | `explorer/` | spectrogram browser pages, spoken-count clips, `stems/` | 530 MB | `tools/spectro_explorer.py` |
 | `ens/` | per-song predictions saved for ensembling | small | `core/arch_compare.py --save-logp` |
 | `cv_ens_logp/` | CV per-song predictions for cross-model ensembles (14r) | ~50 MB | `core/arch_compare.py --folds --save-logp` |
+| `cv_wsweep_logp/` | CV per-song predictions of the window-length sweep (14s) | ~100 MB | `experiments/wsweep.sh` |
 | `probe_models/` | models trained on all songs, for probes | 11 MB | `core/train_full.py` |
 | `bembe_models/` | models with El Bembe held out | 9 MB | `local/bembe_train.py` |
 | `beatmachine/` | Salsa Beat Machine patterns + samples | 2 MB | downloaded (NOTES 15) |
@@ -67,3 +68,4 @@ folders (one `full_f<k>.json` per fold).
 | `cv_aug_both/`, `cv_aug_transpose/`, `cv_aug_mask/` | 14k | augmentation |
 | `cv_ens_beatseqc/`, `cv_ens_gru/` | 14r | reruns behind the cross-architecture ensemble |
 | `cv_ens/<combo>/` | 14r | ensembles of those runs, from `tools/cv_ensemble.py` |
+| `cv_wsweep/<kind>_w<W>/` | 14s | per-window accuracy vs window length |

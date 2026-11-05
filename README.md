@@ -1,8 +1,11 @@
 # neural-salsa
 
-Finding the salsa **1** (and 5) from audio: given beat-synchronous audio
-features, predict each beat's position in the 8-count, then decode one
-consistent count for the whole song. Also a learning project for neural-net
+Finding the salsa **1** (and 5) from audio, the way a dancer has to: given a
+short stretch of beat-synchronous audio, which count of the 8 is this beat,
+and how few beats does it take to know? The headline metric is window-level
+accuracy (and which-half, 1 vs 5) as a function of how many beats the model
+has heard. Decoding one consistent count for a whole song (`song_level`) is
+kept as a secondary diagnostic. Also a learning project for neural-net
 training and interpretability.
 
 `NOTES.md` is the research log: start with its **START HERE** section for the
@@ -123,6 +126,7 @@ Long runs go in the background with output to `data/<name>.log`.
 | `decode_eval.py` | 14c | does a decoder that allows 4-beat shifts help? |
 | `harmony_contrast.py` | 14g | does each song's harmony mark the 1? |
 | `label_scan.py` | 14j | are any annotations missing a phase shift? |
+| `wsweep.sh` | 14s | how many beats does it take? per-window accuracy vs window length, under CV |
 
 Analyses that need the audio or the decoder live in `local/` (stem
 separations, El Bembe, harmony of Amor y Control) -- see `local/README.md`.

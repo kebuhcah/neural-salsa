@@ -56,12 +56,13 @@ def main(dirs):
         for name, s in (("harmony marks the 1 strongly (top third)", hi), ("weakly (bottom third)", lo)):
             dd = [runs[d][si]["h"] - runs[base_d][si]["h"] for si in s]
             print(f"   which-half change where {name}: {np.mean(dd):+.3f} (n={len(s)})")
-        moved = sorted(common, key=lambda si: runs[d][si]["song"] - runs[base_d][si]["song"])
-        print("   biggest song-level changes:")
-        for si in moved[:4] + moved[-6:]:
-            delta = runs[d][si]["song"] - runs[base_d][si]["song"]
-            if abs(delta) >= 0.1:
-                print(f"      {T[si][:30]:<30} {runs[base_d][si]['song']:.2f} -> {runs[d][si]['song']:.2f}")
+        for m, label, thr in (("acc", "per-window", 0.05), ("song", "song-level", 0.1)):
+            moved = sorted(common, key=lambda si: runs[d][si][m] - runs[base_d][si][m])
+            print(f"   biggest {label} changes:")
+            for si in moved[:4] + moved[-6:]:
+                delta = runs[d][si][m] - runs[base_d][si][m]
+                if abs(delta) >= thr:
+                    print(f"      {T[si][:30]:<30} {runs[base_d][si][m]:.2f} -> {runs[d][si][m]:.2f}")
 
 
 if __name__ == "__main__":
