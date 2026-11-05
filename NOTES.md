@@ -15,9 +15,9 @@ every window -- which answers a different, offline question ("what was this
 song's phase?"). Their per-window numbers are all recorded and remain valid;
 read their conclusions with that in mind (14r: the ensemble is the best
 per-window result so far though song level did not move; 14p: the readout fix
-changed song level only). The caveat for everything below: the models read
-24-48 beats (8-16+ s), so their per-window numbers answer "given W beats", not
-"how quickly". The accuracy-vs-beats curve under CV is queued (section 14s).
+changed song level only). The accuracy-vs-beats curve under CV (section 14s):
+**0.60 per window from 4 beats, 0.67-0.68 from 8, 0.76 from 24 (gru) or 48
+(beatseqc)**. Past 8 beats nearly every error is a 1<->5 inversion.
 
 **Most reliable number: 6-fold cross-validation.** Per window, 100 held-out songs: a cross-architecture ensemble of gru W=24 + 2 beatseqc W=48 seeds reaches **0.818** (which-half 0.825; 14r), +0.022 over two beatseqc seeds (p < 0.001). Best single models: beatseqc W=48 + chroma + transposition **0.771** (which-half 0.789; 14k), gruc W=24 + chroma + transposition 0.757, gru W=24 + transposition 0.749 (14q). At song level these all tie at 0.835-0.878. The earlier baseline (section 14e): beatseq
 W=48 decodes **0.811** song-level over 100 held-out songs (65 above 0.95; 0.877
@@ -67,18 +67,24 @@ notching it out fixes every seed (section 13a).
   the phase is a property of the *song*.
 
 ### What is open
-- **How many beats does it take?** (section 14s, queued) 6-fold CV of
-  per-window accuracy and which-half against window length, W = 4-48 beats,
-  for beatseqc + chroma + transposition and gru + transposition, each at its
-  reference training budget. Section 14d measured this once, on two splits
-  with older models; the gru curve stops at W=24 (beyond that it needs
-  micro-batching, which changes BatchNorm -- section 9).
-- **Lock latency, redone** (sections 5, 7): run the forward filter over the
-  new models' per-window outputs and measure beats until correct, confident
-  and stable. Fix first: count total beats of audio heard (section 7 started
-  counting after the first full window, so its "5 beats" was ~13); start
-  from many points in each song, not only the intro; keep the filter honest
-  (stride or tempering; overlapping windows are not independent evidence).
+- **Lock latency, redone** (sections 5, 7, 14s): run the forward filter over
+  the 14s models' saved per-window outputs (`data/cv_wsweep_logp/`, no
+  retraining) and measure beats until correct, confident and stable. Fix
+  first:
+  - calibrate, since every model is overconfident, more so at long W;
+  - count total beats of audio heard (section 7 started counting after the
+    first full window, so its "5 beats" was ~13);
+  - start from many points in each song, not only the intro;
+  - keep the filter honest (stride or tempering; overlapping windows are not
+    independent evidence);
+  - report separately for steady state, after +4 shifts and after section
+    changes.
+  Short windows plus a filter are the promising combination: they recover
+  from shifts on the shift beat.
+- **Anticipation** (14s): sections change on the 1 (35% of novelty peaks),
+  but no model gets more accurate after a change. Candidates: a filter whose
+  reset probability depends on the audio, or an auxiliary section-boundary
+  output.
 - **Overfitting** (section 14e): 0.99 per window on training songs vs 0.68
   held out; the learning curve still rises. Judge everything by 6-fold CV,
   per window and which-half first. In order:
@@ -2182,6 +2188,124 @@ those 9 have annotated phase shifts (14c), which a single-phase decode
 cannot get right by construction. More members, gruc included (~2 h of
 reruns), are unlikely to help. The song level needs a different signal, not a
 bigger ensemble.
+
+### 14s. How many beats does it take? Per-window accuracy vs window length
+
+6-fold CV of W, the window length, with everything else held at the two
+reference configurations: beatseqc + chroma + transposition, 3 epochs, W =
+4-48, and gru + transposition, 4 epochs, W = 4-24. That is
+`experiments/wsweep.sh`, run 2026-11-04/05 for ~8 h, with results in
+`data/cv_wsweep/<kind>_w<W>/`. Per-window log-probs (`data/cv_wsweep_logp/`)
+and models (`data/cv_wsweep_models/`) are kept locally. There is one seed per
+fold. All 101 songs are scored, with every window, after the `batches()` fix
+(see Traps).
+
+| W (beats) | 4 | 8 | 16 | 24 | 48 |
+|---|---|---|---|---|---|
+| beatseqc per-window | 0.601 | 0.669 | 0.708 | 0.727 | **0.760** |
+| beatseqc which-half | 0.662 | 0.710 | 0.734 | 0.750 | 0.777 |
+| beatseqc song-level | 0.791 | 0.823 | 0.831 | 0.842 | 0.823 |
+| beatseqc train per-window | 0.692 | 0.824 | 0.894 | 0.933 | 0.975 |
+| gru per-window | 0.604 | 0.681 | 0.723 | **0.757** | -- |
+| gru which-half | 0.656 | 0.713 | 0.744 | 0.772 | -- |
+| gru song-level | 0.814 | 0.801 | 0.848 | 0.861 | -- |
+| gru train per-window | 0.779 | 0.948 | 0.985 | 0.991 | -- |
+
+The fold spread is about ±0.04 per window (beatseqc W=48 ranges 0.719-0.820
+across folds). Chance is 0.125 per window and 0.5 for which-half.
+
+Paired per song (`tools/cv_compare.py`):
+
+- gru W=24 vs beatseqc W=24: +0.030 per window, with 60 songs better and 23
+  worse (p 0.001), and +0.023 which-half (p 0.009).
+- gru W=4 vs beatseqc W=4: +0.002 (p 0.82).
+- beatseqc W=48 vs gru W=24: +0.003 (p 0.70).
+- beatseqc W=48 vs W=24: +0.034 (p 0.001).
+- No song-level difference is significant.
+
+**Same beats for every W.** A W-beat window needs W trusted beats, so long
+windows skip each song's first W-1 beats and the W-1 beats after every gap.
+That leaves 86,660 windows at W=4 and 80,824 at W=48. Rescored on the 80,824
+beats every model covers, no entry changes by more than 0.003, so the curve
+is not an artefact of which beats get scored.
+
+**What it shows:**
+
+- **Most of the accuracy arrives in the first bar.** Four beats (about 1.7 s
+  at 140 bpm) give 0.60 per window. The next 44 beats add 0.16, and each
+  doubling of W adds less than the one before: +0.07, +0.04, then +0.03
+  over 8 more beats or +0.05 over 24.
+- **Past 8 beats the problem is the 1 vs the 5.** From W=8 on, which-half
+  is only 0.02-0.04 above exact accuracy. Almost every error is a 1<->5
+  inversion, with the position within the half already right. More context
+  goes into telling the halves apart.
+- **The gru uses context more efficiently.** It matches beatseqc W=48 with
+  half the window. The two are identical at W=4, so the gru's advantage is in
+  integrating beats, not in reading single beats.
+- **The gru overfits much harder.** Its training-song accuracy is
+  0.95-0.99 from W=8 on, against 0.82-0.98 for beatseqc. beatseqc W=4
+  barely fits at all (0.69 train vs 0.60 held out). Regularising the gru is
+  the obvious next lever.
+- **Song level hardly depends on W**: 0.79-0.86 everywhere, as 14d found on
+  two splits. Summing a whole song's votes recovers the phase even from
+  4-beat windows, so song level cannot rank models on the dancer's question.
+- **The references reproduce:** W=48 gives 0.760 (14k: 0.771, 2 seeds and
+  the old scoring) and gru W=24 gives 0.757 (14q: 0.749). 14d's 0.58 at 4
+  beats on 32 songs becomes 0.60 on 101.
+
+**Around transitions** (`tools/transition_profile.py`, written to
+`data/cv_wsweep/transition_profile.json`; b = beatseqc, g = gru, number = W;
+"far" = steady state, at least 16 beats from any event of that type):
+
+| windows ending at | b4 | b16 | b48 | g4 | g24 |
+|---|---|---|---|---|---|
+| far from shifts | 0.55 | 0.64 | 0.72 | 0.56 | 0.71 |
+| 1 beat before a +4 shift | 0.24 | 0.49 | 0.56 | 0.25 | 0.52 |
+| the shift beat | **0.57** | **0.64** | 0.35 | 0.45 | 0.42 |
+| 4 beats after | 0.51 | 0.50 | 0.38 | 0.49 | 0.44 |
+| 16 beats after | 0.52 | 0.62 | 0.49 | 0.42 | 0.66 |
+| b48 confidence at the shift | | | 0.91 | | |
+
+- **Long windows carry the old phase past a shift.** b48 drops from 0.56 to
+  0.35 at the shift and is still at 0.49 sixteen beats later, while its
+  confidence stays at 0.88-0.93. Its overconfidence (confidence minus
+  accuracy) reaches +0.55. b4 recovers on the shift beat and stays near
+  steady state. b16 is at steady state on the shift beat, then dips to
+  0.46-0.50 for the next few beats.
+- **The bars before a shift are hard for every model.** b4, which sees only
+  those beats, is at 0.24-0.30 in the 4 beats before. The music there is
+  ambiguous in itself (a break or bridge), or the annotated shift point is
+  late by a few beats. Section 14c's shift annotations are worth a listen
+  with this in mind.
+- **Section boundaries are invisible to the models.** Novelty peaks land on
+  count 1 35% of the time (count 8: 14%; uniform 12.5%), so the music does
+  change on the 1. Yet no model gets more accurate after a peak than in
+  steady state. Long models are flat throughout (b48 and g24 within ±0.04).
+  Short ones dip *before* the peak: b4 0.48-0.52 over the 8 beats before,
+  against 0.61. The end of a section is ambiguous on its own. The
+  anticipation cue from the discussion of how dancers listen is present in
+  the data but unused.
+- **Intros are not hard for long windows.** Over a song's first 32-64
+  beats, b16, b48 and g24 are at or above steady state (b48 at beat 48: 0.86
+  vs 0.76). Short windows are somewhat below it over the first ~24 beats: b4
+  0.47-0.60 and g4 0.45-0.58, against 0.60. The first annotated beat is a
+  median 1.1 s in, so annotated intros are short and the unannotated
+  free-time openings are never scored. After annotation
+  gaps, g4 is a little below steady state (0.49 vs 0.57 at +4) and b4 is
+  not.
+- **Every model is overconfident in steady state, and more so at longer
+  W:** b4 +0.05-0.09, b16 +0.11-0.16, b48 +0.15-0.18, g24 +0.17-0.22.
+  Calibrate first (e.g. per-fold temperature scaling on the training songs)
+  before any lock-latency filter multiplies these probabilities together.
+
+**Consequences.** The answer to "how many beats does it take" is that one bar
+gets 60% per window, two bars 67-68%, and 24-48 beats 76%. The rest of the
+gain is the 1-vs-5 decision. For lock latency this argues for short-window
+models under a filter, not long windows alone: they recover from shifts at
+once, are close to calibrated, and the filter supplies the memory. That is the
+next experiment. It needs calibration, total beats heard as the clock, start
+points spread through each song, and the shift and novelty events above as
+strata.
 
 ---
 
