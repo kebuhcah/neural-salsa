@@ -71,7 +71,8 @@ notching it out fixes every seed (section 13a).
   the 14s models' saved per-window outputs (`data/cv_wsweep_logp/`, no
   retraining) and measure beats until correct, confident and stable. Fix
   first:
-  - calibrate, since every model is overconfident, more so at long W;
+  - calibrate: done (14t), with per-fold temperatures in
+    `data/cv_wsweep/temperatures.json`;
   - count total beats of audio heard (section 7 started counting after the
     first full window, so its "5 beats" was ~13);
   - start from many points in each song, not only the intro;
@@ -2306,6 +2307,53 @@ once, are close to calibrated, and the filter supplies the memory. That is the
 next experiment. It needs calibration, total beats heard as the clock, start
 points spread through each song, and the shift and novelty events above as
 strata.
+
+### 14t. Calibration: one temperature per model, cross-fitted over folds
+
+`tools/calibrate.py` fits one temperature T per model and fold
+(p ~ exp(logp / T)), by minimum NLL per window. This is the first step of the
+lock-latency redo: a forward filter multiplies probabilities, so
+overconfidence compounds. Fold k's T is fitted on the *other* five folds'
+held-out predictions, so fold k is scored out of sample. Fitting on fold k's
+own training songs would be wrong: the models are overfit there (0.69-0.99
+per window), and T would sharpen them. The temperatures are in
+`data/cv_wsweep/temperatures.json`.
+
+| model | T (range over folds) | NLL | conf - acc | ECE |
+|---|---|---|---|---|
+| beatseqc W=4 | 1.23-1.30 | 0.942 -> 0.927 | +0.058 -> +0.008 | 0.058 -> 0.015 |
+| beatseqc W=8 | 1.32-1.44 | 0.833 -> 0.803 | +0.078 -> +0.008 | 0.078 -> 0.028 |
+| beatseqc W=16 | 1.61-1.72 | 0.779 -> 0.699 | +0.115 -> +0.016 | 0.115 -> 0.024 |
+| beatseqc W=24 | 1.75-1.91 | 0.798 -> 0.678 | +0.129 -> +0.018 | 0.129 -> 0.032 |
+| beatseqc W=48 | 2.24-2.55 | 0.949 -> 0.651 | +0.160 -> +0.017 | 0.160 -> 0.040 |
+| gru W=4 | 1.36-1.41 | 0.938 -> 0.901 | +0.110 -> +0.035 | 0.110 -> 0.035 |
+| gru W=8 | 1.87-2.01 | 1.001 -> 0.796 | +0.177 -> +0.039 | 0.177 -> 0.052 |
+| gru W=16 | 2.29-2.52 | 1.141 -> 0.752 | +0.194 -> +0.038 | 0.194 -> 0.057 |
+| gru W=24 | 2.26-2.49 | 1.063 -> 0.690 | +0.177 -> +0.032 | 0.177 -> 0.048 |
+
+- **Overconfidence grows with W and is worse for the gru**, matching its
+  overfitting (14s). T runs from 1.2 at W=4 to 2.4-2.5 for beatseqc W=48 and
+  gru W=16-24. Before calibration ECE equals overconfidence for every model:
+  no bin was underconfident.
+- **T is stable across folds** (±0.1-0.15), so a fixed per-configuration T
+  would do as well.
+- **Calibrated W=48 has the best NLL** (0.651), even though it was the most
+  overconfident. The gru W=24 is close behind (0.690). Calibrated
+  probabilities rank the models the way accuracy does.
+- **One T cannot fix both ends.** After scaling, the most confident windows
+  are still overconfident and the least confident ones underconfident. For
+  beatseqc W=48, windows at confidence 0.94 are right 88% of the time and at
+  0.98 right 91%; at 0.43 they are right 51%. The gru W=24 looks the same:
+  0.94 -> 0.87 and 0.98 -> 0.91. The likely cause is confident 1<->5
+  inversions concentrated in a few songs. A scalar T cannot separate those
+  from confident correct windows. Residual ECE is 0.015-0.06, small next to
+  the effects lock latency will measure.
+- **Calibration does not repair shifts.** Over the 8 beats after a +4 shift,
+  calibrated beatseqc W=48 is still at confidence 0.72 against accuracy 0.34
+  (+0.37), and gru W=24 at +0.22. beatseqc W=4 (+0.00) and gru W=8 (-0.02) are
+  calibrated there too. A long window's confident error after a shift is a
+  wrong belief, not a temperature problem. This is another argument for short
+  windows under a filter, whose reset probability can absorb the shift.
 
 ---
 

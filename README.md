@@ -87,6 +87,7 @@ python tools/cv_compare.py data/cv data/cv_mine            # paired per-song vs 
 python tools/phase_from_audio.py data/short_s0.json        # % of W-beat stretches right, per song
 python tools/transition_profile.py b48='data/cv_ens_logp/beatseqc_w48_splitcv6.*_s0.npz'
                                    # accuracy and confidence around shifts, gaps, section changes, intros
+python tools/calibrate.py data/cv_wsweep_logp    # per-fold temperatures, cross-fitted; NLL/ECE before and after
 ```
 
 **Ensemble** saved predictions:

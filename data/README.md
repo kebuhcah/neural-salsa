@@ -70,3 +70,5 @@ folders (one `full_f<k>.json` per fold).
 | `cv_ens_beatseqc/`, `cv_ens_gru/` | 14r | reruns behind the cross-architecture ensemble |
 | `cv_ens/<combo>/` | 14r | ensembles of those runs, from `tools/cv_ensemble.py` |
 | `cv_wsweep/<kind>_w<W>/` | 14s | per-window accuracy vs window length |
+| `cv_wsweep/temperatures.json` | 14t | per-fold temperatures for the 14s models (`tools/calibrate.py`) |
+| `cv_wsweep/transition_profile.json` | 14s | accuracy and confidence around transitions |
