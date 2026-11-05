@@ -30,8 +30,9 @@ Reads arch_compare --folds --save-logp files, all folds of one model per name:
         g24=data/cv_ens_logp/gru_w24x4_splitcv6.*_s0.npz \\
         b4=data/cv_wsweep_logp/beatseqc_w4x3_splitcv6.*_s0.npz
 
-Caveat: arch_compare's evaluation scores only whole batches of 128 windows,
-so the last <=127 windows of each song are missing from these files.
+Caveat: files written before 2026-11-04 (e.g. data/cv_ens_logp/) lack the
+last <=127 windows of each song -- evaluation then scored only whole batches
+of 128 -- so their profiles miss the song endings.
 """
 import sys, pathlib; sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from _paths import ROOT, DATA  # noqa: E402,F401  (repo root; puts code folders on sys.path)

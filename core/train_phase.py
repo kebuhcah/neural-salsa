@@ -135,12 +135,16 @@ def load_input(kind="mel"):
 
 def batches(songs, index, W, bs, rng, mean, std, shuffle=True):
     order = rng.permutation(len(index)) if shuffle else np.arange(len(index))
-    for k in range(0, len(order) - bs + 1, bs):
+    # Training (shuffled) drops the last partial batch; it is reshuffled every
+    # epoch, so nothing is lost. Scoring (shuffle=False) keeps it: dropping it
+    # left the last <bs windows of every song unscored until 2026-11-04.
+    stop = len(order) - bs + 1 if shuffle else len(order)
+    for k in range(0, stop, bs):
         sel = index[order[k:k + bs]]
         # Feature width from the data, not N_MELS: chroma inputs are 12 or
         # 128+12 wide (arch_compare --input).
-        X = np.empty((bs, W * FPB, songs[sel[0][0]]["feats"].shape[1]), dtype=np.float32)
-        y = np.empty(bs, dtype=np.int64)
+        X = np.empty((len(sel), W * FPB, songs[sel[0][0]]["feats"].shape[1]), dtype=np.float32)
+        y = np.empty(len(sel), dtype=np.int64)
         for j, (si, b) in enumerate(sel):
             s = songs[si]
             X[j] = s["feats"][(b - W + 1) * FPB:(b + 1) * FPB]

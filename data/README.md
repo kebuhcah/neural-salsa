@@ -22,6 +22,7 @@ root.
 | `ens/` | per-song predictions saved for ensembling | small | `core/arch_compare.py --save-logp` |
 | `cv_ens_logp/` | CV per-song predictions for cross-model ensembles (14r) | ~50 MB | `core/arch_compare.py --folds --save-logp` |
 | `cv_wsweep_logp/` | CV per-song predictions of the window-length sweep (14s) | ~100 MB | `experiments/wsweep.sh` |
+| `cv_wsweep_models/` | trained models of the window-length sweep, one per W and fold (14s) | ~80 MB | `experiments/wsweep.sh` |
 | `probe_models/` | models trained on all songs, for probes | 11 MB | `core/train_full.py` |
 | `bembe_models/` | models with El Bembe held out | 9 MB | `local/bembe_train.py` |
 | `beatmachine/` | Salsa Beat Machine patterns + samples | 2 MB | downloaded (NOTES 15) |

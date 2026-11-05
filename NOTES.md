@@ -118,6 +118,11 @@ notching it out fixes every seed (section 13a).
 - `micro` must be passed explicitly; auto-shrinking it with W silently changed
   BatchNorm's behaviour and invalidated a cross-window comparison.
 - `load_all()` returns **float16**; cast before feeding a model.
+- Until 2026-11-04, `batches()` dropped the last partial batch when scoring
+  too, so every per-window and song-level result before 14s leaves out the
+  last <=127 windows of each held-out song (its ending), and songs with fewer
+  than 128 windows went unscored. Fixed for scoring (shuffle=False) only;
+  compare new results only with runs scored the same way.
 - Counts are 0-indexed in `local/build_features.py`, 1-indexed in
   `local/stage_b_labels.py`. Reconcile before trusting any reset detection.
 - Two seeds resolve ~0.08 and nothing finer. Report seed spread always.

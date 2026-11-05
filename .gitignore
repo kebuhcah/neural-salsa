@@ -44,6 +44,7 @@ data/explorer/*
 data/ens/*
 data/cv_ens_logp/*
 data/cv_wsweep_logp/*
+data/cv_wsweep_models/*
 data/probe_models/*
 data/bembe_models/*
 data/beatmachine/*
