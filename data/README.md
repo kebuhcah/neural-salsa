@@ -73,3 +73,4 @@ folders (one `full_f<k>.json` per fold).
 | `cv_wsweep/temperatures.json` | 14t | per-fold temperatures for the 14s models (`tools/calibrate.py`) |
 | `cv_wsweep/transition_profile.json` | 14s | accuracy and confidence around transitions |
 | `cv_wsweep/lock_latency.{txt,json}` | 14u | filter accuracy, lock and commit vs beats heard (`tools/lock_latency.py`) |
+| `cv_wsweep/inversion_scan.json` | 14v | per song: inverted regions by model consensus, with times (`tools/inversion_scan.py`) |

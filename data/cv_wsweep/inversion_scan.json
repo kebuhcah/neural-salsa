@@ -1,0 +1,2677 @@
+[
+ {
+  "song": "Miami",
+  "si": 38,
+  "beats": 1112,
+  "flip": 0.8201438848920863,
+  "e_mean": -2.9807354619519577,
+  "switch_beat": 19,
+  "switch_time": 5.633677005767822,
+  "switch_whole": true,
+  "switch_gain": 3324.120059284902,
+  "switch_flip_after": 0.8281630170316302,
+  "stretch": [
+   19,
+   1115
+  ],
+  "stretch_time": [
+   5.633677005767822,
+   318.48333740234375
+  ],
+  "stretch_gain": 3324.1200592849013,
+  "stretch_flip": 0.8281630170316302,
+  "annotated_shifts": [],
+  "blocks": "rffFFFFFFFFFFFFFFFFFFFFFfFFFFFFFFFfffFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+ },
+ {
+  "song": "Dicen Que Dicen",
+  "si": 92,
+  "beats": 1159,
+  "flip": 0.5891453360176397,
+  "e_mean": -1.3746586191830346,
+  "switch_beat": 318,
+  "switch_time": 109.29924011230469,
+  "switch_whole": false,
+  "switch_gain": 2427.830028123327,
+  "switch_flip_after": 0.7446024223275408,
+  "stretch": [
+   318,
+   1162
+  ],
+  "stretch_time": [
+   109.29924011230469,
+   390.1799011230469
+  ],
+  "stretch_gain": 2427.830028123327,
+  "stretch_flip": 0.7446024223275408,
+  "annotated_shifts": [
+   [
+    310,
+    106.55393981933594
+   ]
+  ],
+  "blocks": "rRRRrrRrrRRrrrRRRrrrFFFFFFFFFFFFFFFfFFFFFFFFFFFfFfFFFFFFFfFFFffFFFFFFFfff"
+ },
+ {
+  "song": "El Bembe\u0301",
+  "si": 88,
+  "beats": 1025,
+  "flip": 0.6951626016260163,
+  "e_mean": -1.6247358024847216,
+  "switch_beat": 7,
+  "switch_time": 2.407550096511841,
+  "switch_whole": true,
+  "switch_gain": 1668.714398607611,
+  "switch_flip_after": 0.6978860594188705,
+  "stretch": [
+   7,
+   1027
+  ],
+  "stretch_time": [
+   2.407550096511841,
+   283.5297546386719
+  ],
+  "stretch_gain": 1668.9936188509066,
+  "stretch_flip": 0.6983523965141613,
+  "annotated_shifts": [
+   [
+    588,
+    163.58880615234375
+   ]
+  ],
+  "blocks": "fFFFFFFfFFFFFfFFFFFFFFFFFFFFrrFrrrrrrFFFFFFfFFFFFffFFFFFFffrffFfr"
+ },
+ {
+  "song": "Como Te Quise Yo",
+  "si": 21,
+  "beats": 869,
+  "flip": 0.6293312875591357,
+  "e_mean": -1.5109569355512031,
+  "switch_beat": 295,
+  "switch_time": 108.1187973022461,
+  "switch_whole": false,
+  "switch_gain": 1629.44310995274,
+  "switch_flip_after": 0.7920277296360485,
+  "stretch": [
+   295,
+   872
+  ],
+  "stretch_time": [
+   108.1187973022461,
+   308.4350280761719
+  ],
+  "stretch_gain": 1629.4431099527405,
+  "stretch_flip": 0.7920277296360485,
+  "annotated_shifts": [],
+  "blocks": "RRRrrrrrrrFfrffrrrfFFFFFFFFFFFFFFffrffFFFFFFFFFFFFFFFFf"
+ },
+ {
+  "song": "Otra Oportunidad",
+  "si": 43,
+  "beats": 1005,
+  "flip": 0.607089552238806,
+  "e_mean": -1.022368259143935,
+  "switch_beat": 525,
+  "switch_time": 176.1593780517578,
+  "switch_whole": false,
+  "switch_gain": 1396.912243025171,
+  "switch_flip_after": 0.8012422360248447,
+  "stretch": [
+   525,
+   1008
+  ],
+  "stretch_time": [
+   176.1593780517578,
+   337.75445556640625
+  ],
+  "stretch_gain": 1396.912243025171,
+  "stretch_flip": 0.8012422360248447,
+  "annotated_shifts": [],
+  "blocks": "FFrrrrfrrrrrrrfFrrrrrrFFrfrRrrrrrFFFFrfFFFFFFFFFFFFFFFFFFFFFFFF"
+ },
+ {
+  "song": "Merecumbe",
+  "si": 40,
+  "beats": 1009,
+  "flip": 0.420864992842198,
+  "e_mean": 0.7754252468355886,
+  "switch_beat": 1003,
+  "switch_time": 315.6549987792969,
+  "switch_whole": false,
+  "switch_gain": 62.444907208283745,
+  "switch_flip_after": 0.711111111111111,
+  "stretch": [
+   149,
+   524
+  ],
+  "stretch_time": [
+   66.68569946289062,
+   176.46829223632812
+  ],
+  "stretch_gain": 1046.4373261560165,
+  "stretch_flip": 0.8265907622739018,
+  "annotated_shifts": [
+   [
+    524,
+    176.46829223632812
+   ],
+   [
+    888,
+    282.3073425292969
+   ]
+  ],
+  "blocks": "RRRRRRrRRrrf FFFFFFFFFFFFFFFFFFFfRRRRRRRRRRRRRRRRRrFFFFrrrRRrrrFFF"
+ },
+ {
+  "song": "Ave Maria Que Calor",
+  "si": 42,
+  "beats": 1029,
+  "flip": 0.5672848504481157,
+  "e_mean": -0.6405692067556022,
+  "switch_beat": 496,
+  "switch_time": 131.77456665039062,
+  "switch_whole": false,
+  "switch_gain": 957.9755898250471,
+  "switch_flip_after": 0.7261608623548922,
+  "stretch": [
+   496,
+   1018
+  ],
+  "stretch_time": [
+   131.77456665039062,
+   266.7746887207031
+  ],
+  "stretch_gain": 975.2249827716087,
+  "stretch_flip": 0.7426564495530013,
+  "annotated_shifts": [
+   [
+    228,
+    62.46377944946289
+   ]
+  ],
+  "blocks": "rrRRrRrrrRrrfffffrfrFFrFFrrFrrrffFFFFfFFFFFFFFfFFFFFFFFfffFfFFFrR"
+ },
+ {
+  "song": "Yo No Se Ma\u00f1ana",
+  "si": 89,
+  "beats": 571,
+  "flip": 0.6466725043782837,
+  "e_mean": -1.3110160406930456,
+  "switch_beat": 200,
+  "switch_time": 64.28820037841797,
+  "switch_whole": true,
+  "switch_gain": 754.7276266498695,
+  "switch_flip_after": 0.6513274336283186,
+  "stretch": [
+   200,
+   807
+  ],
+  "stretch_time": [
+   64.28820037841797,
+   255.37832641601562
+  ],
+  "stretch_gain": 790.6528331687055,
+  "stretch_flip": 0.6771604938271605,
+  "annotated_shifts": [],
+  "blocks": "            fFFFFF    FFFFfFfFrfFFrFrrrrrFFFrFFFfFrR"
+ },
+ {
+  "song": "Dame Una Oportunidad",
+  "si": 46,
+  "beats": 775,
+  "flip": 0.5425806451612902,
+  "e_mean": -0.21755288266847211,
+  "switch_beat": 268,
+  "switch_time": 91.97911071777344,
+  "switch_whole": false,
+  "switch_gain": 621.1871539221876,
+  "switch_flip_after": 0.677995642701525,
+  "stretch": [
+   268,
+   778
+  ],
+  "stretch_time": [
+   91.97911071777344,
+   260.31500244140625
+  ],
+  "stretch_gain": 621.1871539221875,
+  "stretch_flip": 0.677995642701525,
+  "annotated_shifts": [
+   [
+    28,
+    10.582987785339355
+   ]
+  ],
+  "blocks": "rrrrrrrRRrrFfrRRrFFFFrrrFFFFFrFFrfrFFrFFFFFFFFFFF"
+ },
+ {
+  "song": "Todo Tiene Su Final",
+  "si": 34,
+  "beats": 981,
+  "flip": 0.4813965341488277,
+  "e_mean": 0.3544518583831721,
+  "switch_beat": 357,
+  "switch_time": 110.60594177246094,
+  "switch_whole": false,
+  "switch_gain": 134.66995690928547,
+  "switch_flip_after": 0.5775296827928407,
+  "stretch": [
+   357,
+   695
+  ],
+  "stretch_time": [
+   110.60594177246094,
+   208.24879455566406
+  ],
+  "stretch_gain": 557.9085787965187,
+  "stretch_flip": 0.7560815253122946,
+  "annotated_shifts": [],
+  "blocks": "RrRRrRrFFRRrrRrfFRrrFrfFFFFFFFFFFFFFffFrFFFrRRRRRRrRrrFFFFFFrr"
+ },
+ {
+  "song": "Busco",
+  "si": 26,
+  "beats": 834,
+  "flip": 0.37606581401545436,
+  "e_mean": 0.9896544264473145,
+  "switch_beat": 874,
+  "switch_time": 291.2126770019531,
+  "switch_whole": false,
+  "switch_gain": -0.4474016030629476,
+  "switch_flip_after": 0.3333333333333333,
+  "stretch": [
+   216,
+   552
+  ],
+  "stretch_time": [
+   72.48819732666016,
+   184.14503479003906
+  ],
+  "stretch_gain": 449.22041476062617,
+  "stretch_flip": 0.6205723340790454,
+  "annotated_shifts": [
+   [
+    556,
+    185.4835662841797
+   ]
+  ],
+  "blocks": "FrFrffrFfrrrrfffFffrrffRR FFFFFFFFfrrRRRRRRRRRRRRRRRRrr"
+ },
+ {
+  "song": "Que Te Vas (remix)",
+  "si": 14,
+  "beats": 1378,
+  "flip": 0.38332527011772294,
+  "e_mean": 0.7281094926477459,
+  "switch_beat": 1427,
+  "switch_time": 443.393798828125,
+  "switch_whole": false,
+  "switch_gain": 17.59480941626761,
+  "switch_flip_after": 0.544973544973545,
+  "stretch": [
+   454,
+   728
+  ],
+  "stretch_time": [
+   152.56797790527344,
+   236.3813018798828
+  ],
+  "stretch_gain": 442.58668801767953,
+  "stretch_flip": 0.7320182501341921,
+  "annotated_shifts": [],
+  "blocks": "ffffrrrrrRRrfffrrrrRrrrrrFrRFFFFFrFr   FFfFFFFFrrrrrffrrRrrrfFfrrrrrfrrrrRrRRRRRRRRRRrrrrff"
+ },
+ {
+  "song": "Llorar\u00e1s",
+  "si": 55,
+  "beats": 700,
+  "flip": 0.5205952380952381,
+  "e_mean": -0.44161275769864766,
+  "switch_beat": 172,
+  "switch_time": 56.39142608642578,
+  "switch_whole": false,
+  "switch_gain": 406.55990123086497,
+  "switch_flip_after": 0.5540908139778197,
+  "stretch": [
+   172,
+   703
+  ],
+  "stretch_time": [
+   56.39142608642578,
+   225.86175537109375
+  ],
+  "stretch_gain": 406.55990123086485,
+  "stretch_flip": 0.5540908139778197,
+  "annotated_shifts": [],
+  "blocks": "rrrFfFfrrrrFrFrrffrfrfrFrrfFFFFFfrfrrrFFffFF"
+ },
+ {
+  "song": "Cuanto Te Di",
+  "si": 98,
+  "beats": 772,
+  "flip": 0.33720135290731146,
+  "e_mean": 1.692785980481232,
+  "switch_beat": 527,
+  "switch_time": 176.3625030517578,
+  "switch_whole": false,
+  "switch_gain": 370.62539095348785,
+  "switch_flip_after": 0.7307347670250897,
+  "stretch": [
+   527,
+   775
+  ],
+  "stretch_time": [
+   176.3625030517578,
+   255.850830078125
+  ],
+  "stretch_gain": 370.62539095348757,
+  "stretch_flip": 0.7307347670250897,
+  "annotated_shifts": [
+   [
+    180,
+    61.64768600463867
+   ],
+   [
+    304,
+    102.5906753540039
+   ],
+   [
+    388,
+    130.578125
+   ],
+   [
+    512,
+    171.4875030517578
+   ]
+  ],
+  "blocks": "RRRRRRrRRRrrrRRRRRrRRRrfrRRRRRRrrFFfFFffFFFFFFFFF"
+ },
+ {
+  "song": "Celia Cruz Medley",
+  "si": 18,
+  "beats": 861,
+  "flip": 0.35783649503161696,
+  "e_mean": 1.3092994386226167,
+  "switch_beat": 863,
+  "switch_time": 258.22802734375,
+  "switch_whole": false,
+  "switch_gain": -1.5437769360012479,
+  "switch_flip_after": 0.2222222222222222,
+  "stretch": [
+   204,
+   412
+  ],
+  "stretch_time": [
+   61.51348876953125,
+   123.60565185546875
+  ],
+  "stretch_gain": 366.6916540496878,
+  "stretch_flip": 0.6298076923076923,
+  "annotated_shifts": [
+   [
+    412,
+    123.60565185546875
+   ]
+  ],
+  "blocks": "FFrrrfrrrFrrrfrfrrfFFFFFffrRRRrRRRRRRRRRRrrrrrrFrrrrrr"
+ },
+ {
+  "song": "Que Te Vas",
+  "si": 51,
+  "beats": 889,
+  "flip": 0.41774465691788526,
+  "e_mean": 0.4539106319837832,
+  "switch_beat": 281,
+  "switch_time": 88.33515930175781,
+  "switch_whole": false,
+  "switch_gain": 66.43767571118107,
+  "switch_flip_after": 0.4931805782869613,
+  "stretch": [
+   281,
+   424
+  ],
+  "stretch_time": [
+   88.33515930175781,
+   132.34800720214844
+  ],
+  "stretch_gain": 322.56889074709693,
+  "stretch_flip": 0.7544677544677545,
+  "annotated_shifts": [],
+  "blocks": "rrrrrrrrrrrrrrrrrrFFFFfFfFfrrrrrFrfFfrrrrfFfrrrrrrrfrrff"
+ },
+ {
+  "song": "Amor y Control",
+  "si": 94,
+  "beats": 982,
+  "flip": 0.5002828694274722,
+  "e_mean": 0.05088362279410244,
+  "switch_beat": 356,
+  "switch_time": 120.87031555175781,
+  "switch_whole": false,
+  "switch_gain": 295.3459934194886,
+  "switch_flip_after": 0.5751633986928104,
+  "stretch": [
+   356,
+   919
+  ],
+  "stretch_time": [
+   120.87031555175781,
+   310.323486328125
+  ],
+  "stretch_gain": 317.1484962668687,
+  "stretch_flip": 0.585553582001184,
+  "annotated_shifts": [],
+  "blocks": "rrrrrrrrrrfFrrrfrrRRrrrFFFFFrrrrFfrrrrffFfFFFrFfFfFFFFFfFrrfrF"
+ },
+ {
+  "song": "Do You Only Wanna Dance",
+  "si": 61,
+  "beats": 525,
+  "flip": 0.23378306878306876,
+  "e_mean": 2.3920771113637262,
+  "switch_beat": 518,
+  "switch_time": 180.93959045410156,
+  "switch_whole": false,
+  "switch_gain": 0.0950373278723822,
+  "switch_flip_after": 0.36666666666666664,
+  "stretch": [
+   20,
+   104
+  ],
+  "stretch_time": [
+   7.245550155639648,
+   36.56562423706055
+  ],
+  "stretch_gain": 296.3002839957675,
+  "stretch_flip": 0.9168320105820106,
+  "annotated_shifts": [
+   [
+    20,
+    7.245550155639648
+   ],
+   [
+    104,
+    36.56562423706055
+   ],
+   [
+    380,
+    132.831298828125
+   ],
+   [
+    416,
+    145.38844299316406
+   ]
+  ],
+  "blocks": "RFFFFFfRRRRRRRRRRRRRRRRrrrrrRRRrr"
+ },
+ {
+  "song": "Vivir Lo Nuestro",
+  "si": 6,
+  "beats": 1088,
+  "flip": 0.3332567401960784,
+  "e_mean": 1.138212237874612,
+  "switch_beat": 1089,
+  "switch_time": 364.47723388671875,
+  "switch_whole": false,
+  "switch_gain": 0.46488317516114974,
+  "switch_flip_after": 0.4444444444444444,
+  "stretch": [
+   380,
+   520
+  ],
+  "stretch_time": [
+   130.8847198486328,
+   176.8625030517578
+  ],
+  "stretch_gain": 286.6835011078251,
+  "stretch_flip": 0.7301587301587302,
+  "annotated_shifts": [
+   [
+    44,
+    18.64583396911621
+   ],
+   [
+    184,
+    65.61750030517578
+   ],
+   [
+    380,
+    130.8847198486328
+   ],
+   [
+    520,
+    176.8625030517578
+   ],
+   [
+    700,
+    238.25030517578125
+   ]
+  ],
+  "blocks": "RRrfrrfFFfFfrrrrrrrRrrrrFffFFFFFrrrrrrrrrrrrrrrrRRRRrrfrrrfrRRrRrrrrf"
+ },
+ {
+  "song": "Un Dia Yo",
+  "si": 50,
+  "beats": 972,
+  "flip": 0.4021633516232281,
+  "e_mean": 0.7356826571997206,
+  "switch_beat": 565,
+  "switch_time": 187.20379638671875,
+  "switch_whole": false,
+  "switch_gain": 182.5888797011641,
+  "switch_flip_after": 0.5807588075880759,
+  "stretch": [
+   565,
+   929
+  ],
+  "stretch_time": [
+   187.20379638671875,
+   307.2146911621094
+  ],
+  "stretch_gain": 277.35473215248845,
+  "stretch_flip": 0.6275946275946276,
+  "annotated_shifts": [],
+  "blocks": "rRRrRRRRRrrFFrfrrrRRRrrrFFrrrrRRrrrFFFFfFfrFrFffFFFFffFfFFrRr"
+ },
+ {
+  "song": "Ojos Chinos",
+  "si": 82,
+  "beats": 801,
+  "flip": 0.2276147870717159,
+  "e_mean": 2.2585640492692605,
+  "switch_beat": 803,
+  "switch_time": 257.0612487792969,
+  "switch_whole": false,
+  "switch_gain": 1.8761881060070462,
+  "switch_flip_after": 0.8888888888888888,
+  "stretch": [
+   180,
+   334
+  ],
+  "stretch_time": [
+   58.480499267578125,
+   107.69444274902344
+  ],
+  "stretch_gain": 260.1277159783575,
+  "stretch_flip": 0.7142857142857143,
+  "annotated_shifts": [],
+  "blocks": "rrRRRRRRRRrFFfFFFFFFfRRrRrrrfRRRRRRRRRRRRRrrrrrRrRr"
+ },
+ {
+  "song": "Gotas De Lluvia",
+  "si": 9,
+  "beats": 668,
+  "flip": 0.41462907518296743,
+  "e_mean": 0.6532771235786708,
+  "switch_beat": 323,
+  "switch_time": 111.88308715820312,
+  "switch_whole": false,
+  "switch_gain": 222.07343316740454,
+  "switch_flip_after": 0.5956140350877193,
+  "stretch": [
+   323,
+   682
+  ],
+  "stretch_time": [
+   111.88308715820312,
+   238.6153106689453
+  ],
+  "stretch_gain": 233.7097108066082,
+  "stretch_flip": 0.607242339832869,
+  "annotated_shifts": [],
+  "blocks": "RRrrrRRrrRRrRR rrRRrFFFrrFrrrrrrrFFfrrFFFFfr"
+ },
+ {
+  "song": "Ay, Candela",
+  "si": 84,
+  "beats": 709,
+  "flip": 0.26815937940761636,
+  "e_mean": 2.025438805436373,
+  "switch_beat": 706,
+  "switch_time": 198.97682189941406,
+  "switch_whole": false,
+  "switch_gain": -0.3348004354370965,
+  "switch_flip_after": 0.3703703703703703,
+  "stretch": [
+   52,
+   173
+  ],
+  "stretch_time": [
+   15.359424591064453,
+   49.940650939941406
+  ],
+  "stretch_gain": 174.6562031507492,
+  "stretch_flip": 0.7033976124885216,
+  "annotated_shifts": [
+   [
+    52,
+    15.359424591064453
+   ],
+   [
+    360,
+    102.94721221923828
+   ]
+  ],
+  "blocks": "rRRfFFfFFFfrrfrRrrrrrRrRRRRRRRRRRRRRrrrrrrrrr"
+ },
+ {
+  "song": "Mi Musica",
+  "si": 59,
+  "beats": 1037,
+  "flip": 0.21078431372549017,
+  "e_mean": 1.7818514398626166,
+  "switch_beat": 1039,
+  "switch_time": 339.8125305175781,
+  "switch_whole": false,
+  "switch_gain": -0.21168355147043863,
+  "switch_flip_after": 0.3333333333333333,
+  "stretch": [
+   104,
+   195
+  ],
+  "stretch_time": [
+   36.53911209106445,
+   66.0344009399414
+  ],
+  "stretch_gain": 150.98435892661422,
+  "stretch_flip": 0.7081807081807082,
+  "annotated_shifts": [],
+  "blocks": "rRrRrrfFFFFfrRrrfFFrRRRrRRrRRRrrrRRrRRRRRRRRRRRRrRRRRrrRRRRRrRrrr"
+ },
+ {
+  "song": "Valio La Pena",
+  "si": 87,
+  "beats": 910,
+  "flip": 0.3919413919413919,
+  "e_mean": 1.0903583018384393,
+  "switch_beat": 812,
+  "switch_time": 249.61094665527344,
+  "switch_whole": false,
+  "switch_gain": 98.43165009220446,
+  "switch_flip_after": 0.5802469135802469,
+  "stretch": [
+   555,
+   615
+  ],
+  "stretch_time": [
+   173.96719360351562,
+   191.90328979492188
+  ],
+  "stretch_gain": 148.0472558935483,
+  "stretch_flip": 0.8203703703703703,
+  "annotated_shifts": [],
+  "blocks": "RRRRRRRRRrfrrFFFRRrFrRRrFrrFFfRRrrfFFFrRrrrFr RRrrrFFFffFFfR"
+ },
+ {
+  "song": "Volando Entre Tus Brazos",
+  "si": 56,
+  "beats": 991,
+  "flip": 0.4543951115595919,
+  "e_mean": 0.3902428251522942,
+  "switch_beat": 916,
+  "switch_time": 280.645263671875,
+  "switch_whole": false,
+  "switch_gain": -0.23090722163518496,
+  "switch_flip_after": 0.4686609686609687,
+  "stretch": [
+   53,
+   178
+  ],
+  "stretch_time": [
+   25.718700408935547,
+   62.81471252441406
+  ],
+  "stretch_gain": 144.59846952557564,
+  "stretch_flip": 0.6533333333333332,
+  "annotated_shifts": [],
+  "blocks": "RRrFFFrFFffrrfrrrrrfrrFFrrrrrrrrrfFrrrrrFrRRrrrrrrrrrrFFrFFFRRr"
+ },
+ {
+  "song": "El Manisero",
+  "si": 67,
+  "beats": 580,
+  "flip": 0.4023946360153256,
+  "e_mean": 0.5242635741894102,
+  "switch_beat": 532,
+  "switch_time": 183.00314331054688,
+  "switch_whole": false,
+  "switch_gain": 28.75365524490673,
+  "switch_flip_after": 0.5081967213114754,
+  "stretch": [
+   3,
+   124
+  ],
+  "stretch_time": [
+   1.6734249591827393,
+   43.11249923706055
+  ],
+  "stretch_gain": 130.85299480085573,
+  "stretch_flip": 0.6832967836257309,
+  "annotated_shifts": [
+   [
+    124,
+    43.11249923706055
+   ],
+   [
+    200,
+    69.19166564941406
+   ],
+   [
+    620,
+    213.1750030517578
+   ]
+  ],
+  "blocks": "f  FFFFFrFrrFrrrrRRrrrRrffrrffrrrFfrfffff"
+ },
+ {
+  "song": "Ya Lo S\u00e9",
+  "si": 93,
+  "beats": 588,
+  "flip": 0.4633645124716553,
+  "e_mean": 0.25966270868289854,
+  "switch_beat": 549,
+  "switch_time": 179.79629516601562,
+  "switch_whole": false,
+  "switch_gain": 72.68117489417396,
+  "switch_flip_after": 0.7116402116402116,
+  "stretch": [
+   10,
+   261
+  ],
+  "stretch_time": [
+   3.658799886703491,
+   85.9009780883789
+  ],
+  "stretch_gain": 122.25439938571719,
+  "stretch_flip": 0.5723218238158477,
+  "annotated_shifts": [],
+  "blocks": "rffFffrFfrrRrFFFrrrrrrfffrrrffRrrrrFF"
+ },
+ {
+  "song": "Welcome To The Party",
+  "si": 53,
+  "beats": 941,
+  "flip": 0.3697898217026804,
+  "e_mean": 0.24817799067452212,
+  "switch_beat": 795,
+  "switch_time": 201.61956787109375,
+  "switch_whole": false,
+  "switch_gain": 31.146915826532574,
+  "switch_flip_after": 0.43325876211782255,
+  "stretch": [
+   151,
+   232
+  ],
+  "stretch_time": [
+   45.762550354003906,
+   65.26249694824219
+  ],
+  "stretch_gain": 119.72063479158616,
+  "stretch_flip": 0.5473251028806585,
+  "annotated_shifts": [],
+  "blocks": "rrrrrrrrrfffFFfrrrrffrffrrrfrfrrrfrrfrrrrrrrrrrrRrffrfFfrrR"
+ },
+ {
+  "song": "Tim Pop Con Birdland",
+  "si": 71,
+  "beats": 980,
+  "flip": 0.18336167800453515,
+  "e_mean": 1.991723992698773,
+  "switch_beat": 1016,
+  "switch_time": 294.1737976074219,
+  "switch_whole": false,
+  "switch_gain": -3.43434300687578,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   468,
+   620
+  ],
+  "stretch_time": [
+   137.80450439453125,
+   181.51124572753906
+  ],
+  "stretch_gain": 112.43272582027649,
+  "stretch_flip": 0.40423976608187134,
+  "annotated_shifts": [],
+  "blocks": "rRRRfFrrRR RRRRRrRRRfrrrRrRRRfffrfrfFffRRRRrRRRRRRRRRRRRrrrRRrrr"
+ },
+ {
+  "song": "Mosaico Boogaloo",
+  "si": 47,
+  "beats": 1012,
+  "flip": 0.20863526570048313,
+  "e_mean": 2.0858615092012083,
+  "switch_beat": 1014,
+  "switch_time": 300.7667541503906,
+  "switch_whole": false,
+  "switch_gain": -0.9340838657485114,
+  "switch_flip_after": 0.4444444444444444,
+  "stretch": [
+   691,
+   759
+  ],
+  "stretch_time": [
+   205.91665649414062,
+   225.89527893066406
+  ],
+  "stretch_gain": 109.23769034610858,
+  "stretch_flip": 0.6078431372549019,
+  "annotated_shifts": [],
+  "blocks": "RRRRRRRRrRrRRRRrrrRRrrFrrRrfrrrRRrrrrRRRRrrFfFFrRrrRRrRRrrrRrrrr"
+ },
+ {
+  "song": "Tu Promesa De Amor",
+  "si": 32,
+  "beats": 800,
+  "flip": 0.2863541666666667,
+  "e_mean": 1.9485721632905513,
+  "switch_beat": 802,
+  "switch_time": 256.3905334472656,
+  "switch_whole": false,
+  "switch_gain": -4.666525310940212,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   264,
+   428
+  ],
+  "stretch_time": [
+   84.69425964355469,
+   137.02630615234375
+  ],
+  "stretch_gain": 100.76335287425253,
+  "stretch_flip": 0.5548780487804879,
+  "annotated_shifts": [
+   [
+    428,
+    137.02630615234375
+   ]
+  ],
+  "blocks": "rrrrFFrrFrrFfrrrffrFFfrfrFrRrrRRRRRRRrRRRRRRRRRRRRR"
+ },
+ {
+  "song": "La Eternidad Del Amor",
+  "si": 81,
+  "beats": 979,
+  "flip": 0.2739331517421405,
+  "e_mean": 0.940046055387651,
+  "switch_beat": 954,
+  "switch_time": 314.5877990722656,
+  "switch_whole": false,
+  "switch_gain": 50.23946311076483,
+  "switch_flip_after": 0.3906810035842294,
+  "stretch": [
+   450,
+   585
+  ],
+  "stretch_time": [
+   150.18629455566406,
+   194.32061767578125
+  ],
+  "stretch_gain": 87.8735811213652,
+  "stretch_flip": 0.5086419753086419,
+  "annotated_shifts": [],
+  "blocks": "ffffrfrrrR  frffrrRRRrrRRrrrfffffrfffrrrRrrRrRRrRrRrRRRRRRRfFfrR"
+ },
+ {
+  "song": "Hasta Pantojo Baila Mi Son",
+  "si": 69,
+  "beats": 1868,
+  "flip": 0.3643751487033072,
+  "e_mean": 0.7579515761871519,
+  "switch_beat": 1896,
+  "switch_time": 682.5418701171875,
+  "switch_whole": false,
+  "switch_gain": -0.80414836274253,
+  "switch_flip_after": 0.1111111111111111,
+  "stretch": [
+   396,
+   564
+  ],
+  "stretch_time": [
+   148.89718627929688,
+   209.29879760742188
+  ],
+  "stretch_gain": 80.98321166634558,
+  "stretch_flip": 0.5473395931142411,
+  "annotated_shifts": [
+   [
+    4,
+    3.030050039291382
+   ]
+  ],
+  "blocks": "rrFrrrFrfffrrfrfFfffrrrrrFrfffffff rfrrrrfrrrrrrrFfrFfrrrRrRRrfrRRRrrrrrrrrrRrrRrrRrrrrrrRrRrRrrRrrrrfrrrffrrrrrRRrrRRr"
+ },
+ {
+  "song": "Azucar",
+  "si": 39,
+  "beats": 828,
+  "flip": 0.3081052066559313,
+  "e_mean": 1.2922419949644157,
+  "switch_beat": 827,
+  "switch_time": 257.32952880859375,
+  "switch_whole": false,
+  "switch_gain": 1.4236468606524997,
+  "switch_flip_after": 0.4444444444444444,
+  "stretch": [
+   454,
+   552
+  ],
+  "stretch_time": [
+   145.43284606933594,
+   174.8094024658203
+  ],
+  "stretch_gain": 75.78981379999055,
+  "stretch_flip": 0.5884353741496599,
+  "annotated_shifts": [],
+  "blocks": "rrRrrrRRrrRRRRrrrrrrrfrRrrrrffffrFfRrrrrrrrrrrrrrrrr"
+ },
+ {
+  "song": "Escapemonos",
+  "si": 76,
+  "beats": 956,
+  "flip": 0.18734019060901907,
+  "e_mean": 2.3773979363241677,
+  "switch_beat": 958,
+  "switch_time": 322.3539123535156,
+  "switch_whole": false,
+  "switch_gain": -2.978627065817515,
+  "switch_flip_after": 0.1111111111111111,
+  "stretch": [
+   702,
+   836
+  ],
+  "stretch_time": [
+   236.58363342285156,
+   281.5008239746094
+  ],
+  "stretch_gain": 74.40287848975925,
+  "stretch_flip": 0.5431177446102818,
+  "annotated_shifts": [],
+  "blocks": "fRfRRRRrrRRRRRrrrrrrRRRRRRRRRRRRRRRRRRrrRRRrfFFFrFrFrfRRRRRR"
+ },
+ {
+  "song": "En El Aire",
+  "si": 28,
+  "beats": 1101,
+  "flip": 0.13330053486729235,
+  "e_mean": 3.1247365641186704,
+  "switch_beat": 1103,
+  "switch_time": 355.7312927246094,
+  "switch_whole": false,
+  "switch_gain": -4.228620237774319,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   812,
+   861
+  ],
+  "stretch_time": [
+   264.78753662109375,
+   280.1180114746094
+  ],
+  "stretch_gain": 72.24887128671013,
+  "stretch_flip": 0.6689342403628117,
+  "annotated_shifts": [],
+  "blocks": "RRrRRRRRRRrRRRRRRrrrRRRRRRRRRRRRRRRRrRRrrrrRRrRRRrrFFfRRRrrrRRRrRRRRR"
+ },
+ {
+  "song": "Amigo",
+  "si": 0,
+  "beats": 732,
+  "flip": 0.26478066180935034,
+  "e_mean": 1.6306653755994622,
+  "switch_beat": 687,
+  "switch_time": 228.72543334960938,
+  "switch_whole": false,
+  "switch_gain": 20.026549385653603,
+  "switch_flip_after": 0.5300925925925926,
+  "stretch": [
+   164,
+   202
+  ],
+  "stretch_time": [
+   55.45267868041992,
+   68.04456329345703
+  ],
+  "stretch_gain": 70.77196466260487,
+  "stretch_flip": 0.7222222222222222,
+  "annotated_shifts": [],
+  "blocks": "RRRRRRRrRrfFfrRRrrrrRrRRrRrrrrrRrrrRrfrfrrrFff"
+ },
+ {
+  "song": "Ain't Nobody",
+  "si": 73,
+  "beats": 924,
+  "flip": 0.21933621933621936,
+  "e_mean": 2.783564882677276,
+  "switch_beat": 911,
+  "switch_time": 280.2712707519531,
+  "switch_whole": false,
+  "switch_gain": 1.8260756962829157,
+  "switch_flip_after": 0.5347222222222222,
+  "stretch": [
+   732,
+   776
+  ],
+  "stretch_time": [
+   225.4609375,
+   238.92738342285156
+  ],
+  "stretch_gain": 66.65599709749223,
+  "stretch_flip": 0.5732323232323231,
+  "annotated_shifts": [],
+  "blocks": "RRRRRRrrrrrRrrfrrRRRrRrffFRRRrrrrRRRRRRRRRRrrrFfrrrRRRrrrf"
+ },
+ {
+  "song": "Lola Lola",
+  "si": 30,
+  "beats": 1188,
+  "flip": 0.16246960344182565,
+  "e_mean": 2.2671006476263393,
+  "switch_beat": 1190,
+  "switch_time": 390.09124755859375,
+  "switch_whole": false,
+  "switch_gain": -2.706385268105401,
+  "switch_flip_after": 0.1111111111111111,
+  "stretch": [
+   199,
+   327
+  ],
+  "stretch_time": [
+   67.90260314941406,
+   110.42880249023438
+  ],
+  "stretch_gain": 58.80970503224265,
+  "stretch_flip": 0.4600694444444444,
+  "annotated_shifts": [
+   [
+    204,
+    69.54910278320312
+   ],
+   [
+    304,
+    102.58332824707031
+   ]
+  ],
+  "blocks": "RRRRrRrRRRRRrfFffrrffRRRRRRRRRRRRrRRRRRRrrrRRrRrrRrrRrRRrfrrrRRRrrrrRRRrrrR"
+ },
+ {
+  "song": "Ocairi",
+  "si": 4,
+  "beats": 917,
+  "flip": 0.32436689688598086,
+  "e_mean": 0.8883427063067054,
+  "switch_beat": 909,
+  "switch_time": 271.76513671875,
+  "switch_whole": false,
+  "switch_gain": 39.790094746483696,
+  "switch_flip_after": 0.6775067750677507,
+  "stretch": [
+   8,
+   132
+  ],
+  "stretch_time": [
+   3.143899917602539,
+   41.63673782348633
+  ],
+  "stretch_gain": 56.530738357454545,
+  "stretch_flip": 0.45799731182795705,
+  "annotated_shifts": [
+   [
+    60,
+    19.28944969177246
+   ]
+  ],
+  "blocks": "ffffffFrrrrrfFfrRrrfrfFfRrRRrrrrrr rRrrrrrRRRRRrrrrrrrrrrFFF"
+ },
+ {
+  "song": "Bilongo",
+  "si": 65,
+  "beats": 1081,
+  "flip": 0.20679155103299413,
+  "e_mean": 2.171333204383185,
+  "switch_beat": 1071,
+  "switch_time": 339.0638122558594,
+  "switch_whole": false,
+  "switch_gain": 8.478184872203403,
+  "switch_flip_after": 0.15384615384615385,
+  "stretch": [
+   259,
+   288
+  ],
+  "stretch_time": [
+   87.50403594970703,
+   97.01170349121094
+  ],
+  "stretch_gain": 53.48744316564666,
+  "stretch_flip": 0.7088122605363986,
+  "annotated_shifts": [
+   [
+    148,
+    50.74584197998047
+   ],
+   [
+    176,
+    59.99348831176758
+   ],
+   [
+    260,
+    87.84500122070312
+   ],
+   [
+    288,
+    97.01170349121094
+   ]
+  ],
+  "blocks": "RRRRRRRRrrrrrfrrfFRRRrrfrrrrRRRRRrrRRrrRrrRRrrRrRRRRRRRrrFrrrrrrRrRf"
+ },
+ {
+  "song": "Sin Salsa No Hay Paraiso",
+  "si": 36,
+  "beats": 700,
+  "flip": 0.13642857142857143,
+  "e_mean": 3.3429971864370134,
+  "switch_beat": 702,
+  "switch_time": 224.6626434326172,
+  "switch_whole": false,
+  "switch_gain": -2.718265083101061,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   21,
+   55
+  ],
+  "stretch_time": [
+   7.884425163269043,
+   18.674999237060547
+  ],
+  "stretch_gain": 48.7027841988537,
+  "stretch_flip": 0.7369281045751636,
+  "annotated_shifts": [],
+  "blocks": "RFFfRRRRrrrrRRRRRRRRRrrRRRRRRRRRRRRRRRRRRRRR"
+ },
+ {
+  "song": "Ni Fio, Ni Doy, Ni Presto",
+  "si": 13,
+  "beats": 1084,
+  "flip": 0.13701824518245181,
+  "e_mean": 2.8753279639631755,
+  "switch_beat": 1086,
+  "switch_time": 317.4247131347656,
+  "switch_whole": false,
+  "switch_gain": -1.196843425432841,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   496,
+   536
+  ],
+  "stretch_time": [
+   148.3350067138672,
+   159.9324951171875
+  ],
+  "stretch_gain": 47.43546056747437,
+  "stretch_flip": 0.5888888888888888,
+  "annotated_shifts": [],
+  "blocks": "RrRRRRRrrrrrrRRRrRRrRRRRRRRRRrrfffrrrRRRfrrRrrRrrRRRRRRRRRRRRRRRRRRR"
+ },
+ {
+  "song": "Apiadate De Mi",
+  "si": 77,
+  "beats": 844,
+  "flip": 0.21200302790942605,
+  "e_mean": 1.8584684705898251,
+  "switch_beat": 846,
+  "switch_time": 302.20159912109375,
+  "switch_whole": false,
+  "switch_gain": -1.4129924774169922,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   760,
+   811
+  ],
+  "stretch_time": [
+   271.62347412109375,
+   289.7656555175781
+  ],
+  "stretch_gain": 45.375529713100846,
+  "stretch_flip": 0.6318082788671023,
+  "annotated_shifts": [],
+  "blocks": "rRRRRRRrRRRRRRRrRRRRRRrrrRRrRrrrrrfrrrrRRrfrfRrrFffRR"
+ },
+ {
+  "song": "La Maquinera",
+  "si": 27,
+  "beats": 573,
+  "flip": 0.154304828388598,
+  "e_mean": 2.0906047274459527,
+  "switch_beat": 489,
+  "switch_time": 182.87083435058594,
+  "switch_whole": false,
+  "switch_gain": 30.717729952600266,
+  "switch_flip_after": 0.3614303959131545,
+  "stretch": [
+   489,
+   567
+  ],
+  "stretch_time": [
+   182.87083435058594,
+   211.4166717529297
+  ],
+  "stretch_gain": 41.98258836401833,
+  "stretch_flip": 0.39031339031339024,
+  "annotated_shifts": [],
+  "blocks": "RrrRRRRRRRRRRRRRRRRrRRRrrrfrRRrffrfr"
+ },
+ {
+  "song": "Pura Matematica",
+  "si": 17,
+  "beats": 1124,
+  "flip": 0.1922943851324634,
+  "e_mean": 2.2301832044002934,
+  "switch_beat": 1103,
+  "switch_time": 360.34381103515625,
+  "switch_whole": false,
+  "switch_gain": 39.42260853780642,
+  "switch_flip_after": 0.75,
+  "stretch": [
+   1103,
+   1127
+  ],
+  "stretch_time": [
+   360.34381103515625,
+   367.8172302246094
+  ],
+  "stretch_gain": 39.422608537806404,
+  "stretch_flip": 0.75,
+  "annotated_shifts": [],
+  "blocks": "RRRRRrfrrRrrrrrrrrRrrrRrfRRRRRRRrRRRrRRRRRRRRrrrRRRrrrfrrRRRRrRRrRRrrFF"
+ },
+ {
+  "song": "Si Supieras",
+  "si": 11,
+  "beats": 932,
+  "flip": 0.29425965665236054,
+  "e_mean": 1.8034126696989128,
+  "switch_beat": 934,
+  "switch_time": 312.3851623535156,
+  "switch_whole": false,
+  "switch_gain": -1.698893083466424,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   756,
+   799
+  ],
+  "stretch_time": [
+   254.03829956054688,
+   268.13128662109375
+  ],
+  "stretch_gain": 36.48209072152773,
+  "stretch_flip": 0.6795865633074936,
+  "annotated_shifts": [],
+  "blocks": "rrRRRRrrrrfrRrRRrrrfFFrRRRRrrrrrrrrrrrFFFfRrrrrFFfRRRrrrrrR"
+ },
+ {
+  "song": "Remenea",
+  "si": 49,
+  "beats": 828,
+  "flip": 0.06169484702093398,
+  "e_mean": 4.567186451193607,
+  "switch_beat": 830,
+  "switch_time": 249.3473358154297,
+  "switch_whole": false,
+  "switch_gain": -3.285082393222385,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   33,
+   67
+  ],
+  "stretch_time": [
+   10.250679016113281,
+   20.47234344482422
+  ],
+  "stretch_gain": 33.36488324403762,
+  "stretch_flip": 0.10947712418300652,
+  "annotated_shifts": [],
+  "blocks": "rrRRRRRRRRRRRRRRRRRRRRRrRRRRRrrrRRRRRRRRRRRRRRRRRRRr"
+ },
+ {
+  "song": "Te Extra\u00f1o",
+  "si": 95,
+  "beats": 441,
+  "flip": 0.2949420508944319,
+  "e_mean": 0.7242881247347175,
+  "switch_beat": 424,
+  "switch_time": 195.9113006591797,
+  "switch_whole": false,
+  "switch_gain": 19.682494961553143,
+  "switch_flip_after": 0.5388888888888889,
+  "stretch": [
+   91,
+   112
+  ],
+  "stretch_time": [
+   42.22064971923828,
+   51.90973663330078
+  ],
+  "stretch_gain": 32.04113604956203,
+  "stretch_flip": 0.6560846560846562,
+  "annotated_shifts": [
+   [
+    44,
+    20.523799896240234
+   ],
+   [
+    80,
+    37.139915466308594
+   ],
+   [
+    340,
+    157.14486694335938
+   ]
+  ],
+  "blocks": "RrRrfrFrrrRrrrrfrfrrrrRRrfrf"
+ },
+ {
+  "song": "La Lucha",
+  "si": 20,
+  "beats": 1009,
+  "flip": 0.22230481224534743,
+  "e_mean": 2.576659650706241,
+  "switch_beat": 1000,
+  "switch_time": 324.0332946777344,
+  "switch_whole": false,
+  "switch_gain": 11.228418717781704,
+  "switch_flip_after": 0.6481481481481481,
+  "stretch": [
+   204,
+   252
+  ],
+  "stretch_time": [
+   70.60362243652344,
+   86.53880310058594
+  ],
+  "stretch_gain": 31.57858613795704,
+  "stretch_flip": 0.5833333333333334,
+  "annotated_shifts": [
+   [
+    252,
+    86.53880310058594
+   ]
+  ],
+  "blocks": "rrrRRRRrrRRrrfFfRRRRrFrRRRrrRrrrrrrRRRrrrrrRrrrRRrrRRrrRRRRrrrrf"
+ },
+ {
+  "song": "Micaela",
+  "si": 35,
+  "beats": 805,
+  "flip": 0.1697032436162871,
+  "e_mean": 2.600355810755857,
+  "switch_beat": 807,
+  "switch_time": 270.3114929199219,
+  "switch_whole": false,
+  "switch_gain": -2.1856489181518555,
+  "switch_flip_after": 0.1111111111111111,
+  "stretch": [
+   69,
+   95
+  ],
+  "stretch_time": [
+   23.923999786376953,
+   32.5989990234375
+  ],
+  "stretch_gain": 28.800925195217133,
+  "stretch_flip": 0.5384615384615384,
+  "annotated_shifts": [],
+  "blocks": "frrrffrrrRrRrrRRrfrrRrrfRRRrRRRRRRRRRRRRRRRRRRRRrrr"
+ },
+ {
+  "song": "Lamento Boliviano",
+  "si": 64,
+  "beats": 443,
+  "flip": 0.22172059192375218,
+  "e_mean": 1.6726852201984916,
+  "switch_beat": 471,
+  "switch_time": 218.8020782470703,
+  "switch_whole": false,
+  "switch_gain": -0.3570898241466946,
+  "switch_flip_after": 0.3333333333333333,
+  "stretch": [
+   5,
+   24
+  ],
+  "stretch_time": [
+   3.7218000888824463,
+   12.488800048828125
+  ],
+  "stretch_gain": 27.975621379911896,
+  "stretch_flip": 0.7346491228070176,
+  "annotated_shifts": [],
+  "blocks": "FrRrrFr rrrRrrrfrrRRRRRrRrRRRr"
+ },
+ {
+  "song": "Recoge y Vete",
+  "si": 78,
+  "beats": 756,
+  "flip": 0.24333112874779542,
+  "e_mean": 1.5868003658111536,
+  "switch_beat": 758,
+  "switch_time": 254.1201629638672,
+  "switch_whole": false,
+  "switch_gain": -1.190925783581204,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   392,
+   434
+  ],
+  "stretch_time": [
+   132.09661865234375,
+   146.10675048828125
+  ],
+  "stretch_gain": 27.784909764925644,
+  "stretch_flip": 0.5158730158730157,
+  "annotated_shifts": [
+   [
+    628,
+    210.77001953125
+   ]
+  ],
+  "blocks": "RRRrRRRRRrrrrrrrrrrrrRrrfffrrrrFrrFrrRRrrrrrrRRR"
+ },
+ {
+  "song": "No!",
+  "si": 7,
+  "beats": 908,
+  "flip": 0.2974486049926579,
+  "e_mean": 1.2892305358047258,
+  "switch_beat": 910,
+  "switch_time": 296.2444152832031,
+  "switch_whole": false,
+  "switch_gain": -1.8375595808029175,
+  "switch_flip_after": 0.1111111111111111,
+  "stretch": [
+   837,
+   883
+  ],
+  "stretch_time": [
+   273.1379699707031,
+   287.72125244140625
+  ],
+  "stretch_gain": 27.01628624399504,
+  "stretch_flip": 0.5676328502415461,
+  "annotated_shifts": [],
+  "blocks": "RRrRrffrrRRrrRrrRrrRrrrrfffRrfrRrrrrrRrRrrfRrrrrfrfrFffrR"
+ },
+ {
+  "song": "Toro Mata",
+  "si": 62,
+  "beats": 1272,
+  "flip": 0.1904917889587701,
+  "e_mean": 2.571157358869569,
+  "switch_beat": 1274,
+  "switch_time": 336.22296142578125,
+  "switch_whole": false,
+  "switch_gain": -2.20492070251041,
+  "switch_flip_after": 0.1111111111111111,
+  "stretch": [
+   688,
+   718
+  ],
+  "stretch_time": [
+   186.61363220214844,
+   194.52767944335938
+  ],
+  "stretch_gain": 26.051351212792927,
+  "stretch_flip": 0.625925925925926,
+  "annotated_shifts": [
+   [
+    500,
+    137.3050537109375
+   ]
+  ],
+  "blocks": "frRRRRRRrrrrrrrRrfrRrrrrRRRRRrrrRRRRRRRRRRrFfrRRrRRRRRRRRrrrRrRRRRrrrrrfRRRRrrrr"
+ },
+ {
+  "song": "De La Habana a Peru",
+  "si": 12,
+  "beats": 746,
+  "flip": 0.17457923741435807,
+  "e_mean": 2.4404073809488547,
+  "switch_beat": 782,
+  "switch_time": 277.4601745605469,
+  "switch_whole": false,
+  "switch_gain": -1.6040687031216092,
+  "switch_flip_after": 0.2222222222222222,
+  "stretch": [
+   52,
+   68
+  ],
+  "stretch_time": [
+   19.790624618530273,
+   25.440624237060547
+  ],
+  "stretch_gain": 19.45170769426558,
+  "stretch_flip": 0.7222222222222222,
+  "annotated_shifts": [],
+  "blocks": "rrrFrfrRRrRrRRRRrRRRRrRRRRrrRrrfRRrrRrR RRRrrRrrr"
+ },
+ {
+  "song": "Mi Mary",
+  "si": 74,
+  "beats": 990,
+  "flip": 0.16437991021324352,
+  "e_mean": 2.799081073996144,
+  "switch_beat": 1019,
+  "switch_time": 326.52166748046875,
+  "switch_whole": false,
+  "switch_gain": -3.17258444097307,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   660,
+   673
+  ],
+  "stretch_time": [
+   212.609375,
+   216.79220581054688
+  ],
+  "stretch_gain": 18.621909770700668,
+  "stretch_flip": 0.6752136752136753,
+  "annotated_shifts": [],
+  "blocks": "rrrrRrrrRrRrRrRrRrfrRRRRRRRrRRRRRRRRrRRrRfrr FfrrrrrRRRRrRRrRRRR"
+ },
+ {
+  "song": "Intro De La Habana a Peru",
+  "si": 68,
+  "beats": 926,
+  "flip": 0.09111771058315335,
+  "e_mean": 3.865198556671712,
+  "switch_beat": 1015,
+  "switch_time": 349.9103698730469,
+  "switch_whole": false,
+  "switch_gain": -4.481364356146918,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   11,
+   30
+  ],
+  "stretch_time": [
+   5.746743679046631,
+   12.3145751953125
+  ],
+  "stretch_gain": 18.26024944831928,
+  "stretch_flip": 0.3399122807017544,
+  "annotated_shifts": [],
+  "blocks": "rfr rRRR RRRrRrRRRrRRRRRRRRRrRRRRRRRRRRRRRRRRRRRRRrRRRrr rrrrRRR"
+ },
+ {
+  "song": "Federico Boogaloo",
+  "si": 100,
+  "beats": 536,
+  "flip": 0.19957504145936983,
+  "e_mean": 2.2323971153762048,
+  "switch_beat": 538,
+  "switch_time": 146.6641082763672,
+  "switch_whole": false,
+  "switch_gain": 1.5103714731004503,
+  "switch_flip_after": 0.2222222222222222,
+  "stretch": [
+   268,
+   287
+  ],
+  "stretch_time": [
+   74.68378448486328,
+   79.7424545288086
+  ],
+  "stretch_gain": 17.995341291030247,
+  "stretch_flip": 0.5555555555555557,
+  "annotated_shifts": [],
+  "blocks": "RRRRRrRRRRRRRrRRrfrrrrrRRrrrrrrrrr"
+ },
+ {
+  "song": "El Tiroteo",
+  "si": 70,
+  "beats": 584,
+  "flip": 0.16921137747336376,
+  "e_mean": 2.8323598375807615,
+  "switch_beat": 572,
+  "switch_time": 165.7310028076172,
+  "switch_whole": false,
+  "switch_gain": 17.243559575743145,
+  "switch_flip_after": 0.4518518518518518,
+  "stretch": [
+   572,
+   587
+  ],
+  "stretch_time": [
+   165.7310028076172,
+   169.64840698242188
+  ],
+  "stretch_gain": 17.24355957574314,
+  "stretch_flip": 0.4518518518518518,
+  "annotated_shifts": [
+   [
+    156,
+    47.056251525878906
+   ],
+   [
+    224,
+    66.59341430664062
+   ],
+   [
+    316,
+    92.9375
+   ],
+   [
+    384,
+    112.25523376464844
+   ],
+   [
+    476,
+    138.60000610351562
+   ],
+   [
+    536,
+    155.5424346923828
+   ],
+   [
+    572,
+    165.7310028076172
+   ]
+  ],
+  "blocks": "RRRRRRRRRrrrrrrrrRRrrrrrrrrRRrrrrrRrf"
+ },
+ {
+  "song": "Ahora Quien",
+  "si": 85,
+  "beats": 861,
+  "flip": 0.1653923086849916,
+  "e_mean": 2.789254873249224,
+  "switch_beat": 863,
+  "switch_time": 305.4014587402344,
+  "switch_whole": false,
+  "switch_gain": -0.4993846615155538,
+  "switch_flip_after": 0.2222222222222222,
+  "stretch": [
+   684,
+   697
+  ],
+  "stretch_time": [
+   244.593017578125,
+   248.98512268066406
+  ],
+  "stretch_gain": 16.822739958763123,
+  "stretch_flip": 0.6666666666666666,
+  "annotated_shifts": [
+   [
+    84,
+    29.6875
+   ],
+   [
+    504,
+    182.0749969482422
+   ]
+  ],
+  "blocks": "frrRrrrRrRRrRRRRRRrrRRRrRRrRRrrrrRRRRRRRRRrfRrRRRRRrrR"
+ },
+ {
+  "song": "Una Vez Mas",
+  "si": 75,
+  "beats": 755,
+  "flip": 0.15783664459161148,
+  "e_mean": 2.4981787057430362,
+  "switch_beat": 791,
+  "switch_time": 252.31466674804688,
+  "switch_whole": false,
+  "switch_gain": -1.8778119484583538,
+  "switch_flip_after": 0.1111111111111111,
+  "stretch": [
+   205,
+   225
+  ],
+  "stretch_time": [
+   69.30472564697266,
+   75.55000305175781
+  ],
+  "stretch_gain": 15.509529365433588,
+  "stretch_flip": 0.5666666666666667,
+  "annotated_shifts": [],
+  "blocks": "fRR rrrrrrrrrfrRRRrRRrRRRrRrrRRRRRRRrrRRRRRRRRrRRr"
+ },
+ {
+  "song": "Me Dicen Cuba",
+  "si": 45,
+  "beats": 952,
+  "flip": 0.16453664799253037,
+  "e_mean": 2.0360034859598373,
+  "switch_beat": 1055,
+  "switch_time": 337.85113525390625,
+  "switch_whole": false,
+  "switch_gain": -2.48654928472307,
+  "switch_flip_after": 0.2222222222222222,
+  "stretch": [
+   262,
+   274
+  ],
+  "stretch_time": [
+   84.9117660522461,
+   88.78333282470703
+  ],
+  "stretch_gain": 13.012825628121693,
+  "stretch_flip": 0.12037037037037036,
+  "annotated_shifts": [],
+  "blocks": "rrrrrrrrrR rfrrRRRRRRRRRRRRrrRrrRRrRRRRRRrR  rrR RrrrrRrrrRrrrrRRR"
+ },
+ {
+  "song": "Cuba Te Llama",
+  "si": 66,
+  "beats": 910,
+  "flip": 0.14690170940170938,
+  "e_mean": 3.2040563395226394,
+  "switch_beat": 904,
+  "switch_time": 270.01953125,
+  "switch_whole": false,
+  "switch_gain": 2.4435962239901228,
+  "switch_flip_after": 0.6172839506172839,
+  "stretch": [
+   291,
+   312
+  ],
+  "stretch_time": [
+   89.54374694824219,
+   95.74848937988281
+  ],
+  "stretch_gain": 11.530686812268362,
+  "stretch_flip": 0.5925925925925926,
+  "annotated_shifts": [],
+  "blocks": "RRRRRRRRRRRRRRRRrrfrrRRrrRRRrfrRrrrRRRrRRRRRrRRRRRRRrrrrrF"
+ },
+ {
+  "song": "Marcando La Distancia",
+  "si": 52,
+  "beats": 732,
+  "flip": 0.11961141469338193,
+  "e_mean": 2.5612416935334816,
+  "switch_beat": 734,
+  "switch_time": 231.09523010253906,
+  "switch_whole": false,
+  "switch_gain": -2.1696066326565213,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   386,
+   399
+  ],
+  "stretch_time": [
+   121.18317413330078,
+   125.2738037109375
+  ],
+  "stretch_gain": 11.46124028497272,
+  "stretch_flip": 0.4615384615384616,
+  "annotated_shifts": [],
+  "blocks": "RRRrRRRRRRRRRRRrRRrRRrRrfrrrrrrRrrRRRRRRRRRRRr"
+ },
+ {
+  "song": "Palo Pa' Rumba",
+  "si": 57,
+  "beats": 680,
+  "flip": 0.1604575163398693,
+  "e_mean": 2.6561103375445976,
+  "switch_beat": 668,
+  "switch_time": 255.038330078125,
+  "switch_whole": false,
+  "switch_gain": 6.5674257642692995,
+  "switch_flip_after": 0.48148148148148145,
+  "stretch": [
+   68,
+   80
+  ],
+  "stretch_time": [
+   27.1809139251709,
+   31.74441909790039
+  ],
+  "stretch_gain": 10.97789580954446,
+  "stretch_flip": 0.5462962962962962,
+  "annotated_shifts": [],
+  "blocks": "RRRRrRRRRRRrfRRrRrrRRrRRrrrrRRRRRRRrrrRRrrf"
+ },
+ {
+  "song": "Enamorado",
+  "si": 79,
+  "beats": 885,
+  "flip": 0.18824544883866917,
+  "e_mean": 2.0914463314946277,
+  "switch_beat": 887,
+  "switch_time": 286.8748474121094,
+  "switch_whole": false,
+  "switch_gain": -1.566941671901279,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   375,
+   392
+  ],
+  "stretch_time": [
+   121.71379852294922,
+   127.19817352294922
+  ],
+  "stretch_gain": 10.620098683569166,
+  "stretch_flip": 0.5882352941176471,
+  "annotated_shifts": [],
+  "blocks": "RRrrrrRRRRRrrrRrrRRRrRrrfrrRRRrrrRrrrrrrRrrRrrrRRRRRRRRR"
+ },
+ {
+  "song": "El Cantante",
+  "si": 23,
+  "beats": 1317,
+  "flip": 0.24636168058719315,
+  "e_mean": 1.9168631116906207,
+  "switch_beat": 1319,
+  "switch_time": 409.1208801269531,
+  "switch_whole": false,
+  "switch_gain": 0.06407136387295193,
+  "switch_flip_after": 0.5555555555555556,
+  "stretch": [
+   309,
+   320
+  ],
+  "stretch_time": [
+   104.0250015258789,
+   107.56880187988281
+  ],
+  "stretch_gain": 10.415161616272396,
+  "stretch_flip": 0.7070707070707071,
+  "annotated_shifts": [],
+  "blocks": "rRRRRRfRrRrrrrrrrRrfrrrrrrrrrrrrrrrrrrRRRrrrrRrrrrRrrrrrrrrrrrRRRRRrrrrrrrrRRRRRrrr"
+ },
+ {
+  "song": "Vuela Muy Alto",
+  "si": 37,
+  "beats": 743,
+  "flip": 0.18868700463586063,
+  "e_mean": 2.105334554403503,
+  "switch_beat": 831,
+  "switch_time": 264.86248779296875,
+  "switch_whole": false,
+  "switch_gain": -3.0792088508605957,
+  "switch_flip_after": 0.1111111111111111,
+  "stretch": [
+   684,
+   696
+  ],
+  "stretch_time": [
+   218.44375610351562,
+   222.27499389648438
+  ],
+  "stretch_gain": 10.010636866092682,
+  "stretch_flip": 0.59375,
+  "annotated_shifts": [
+   [
+    644,
+    205.83189392089844
+   ],
+   [
+    664,
+    212.10269165039062
+   ]
+  ],
+  "blocks": "  RRrRrfrrRrrrRRRRRRrRrrrRRRRRrRRRrRRr  frrrrfRrRrrr"
+ },
+ {
+  "song": "Ni\u00f1a y Se\u00f1ora",
+  "si": 97,
+  "beats": 813,
+  "flip": 0.07983121497881644,
+  "e_mean": 4.762311576334211,
+  "switch_beat": 815,
+  "switch_time": 260.36956787109375,
+  "switch_whole": false,
+  "switch_gain": -3.643879254659017,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   224,
+   238
+  ],
+  "stretch_time": [
+   71.64981079101562,
+   76.04896545410156
+  ],
+  "stretch_gain": 9.635350482331384,
+  "stretch_flip": 0.5873015873015873,
+  "annotated_shifts": [],
+  "blocks": "rrRrRRRRRrRRRrfrrRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR"
+ },
+ {
+  "song": "Ran Kan Kan",
+  "si": 1,
+  "beats": 601,
+  "flip": 0.16830745054538734,
+  "e_mean": 2.2702434819606996,
+  "switch_beat": 603,
+  "switch_time": 177.83326721191406,
+  "switch_whole": false,
+  "switch_gain": -1.4812137683232625,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   3,
+   10
+  ],
+  "stretch_time": [
+   1.3890999555587769,
+   3.5609500408172607
+  ],
+  "stretch_gain": 9.483844816684723,
+  "stretch_flip": 0.4642857142857143,
+  "annotated_shifts": [
+   [
+    20,
+    6.7378997802734375
+   ]
+  ],
+  "blocks": "frrrrRRRRrrrrRRRRRrrRRRrrRrRRRrRRRrRrR"
+ },
+ {
+  "song": "Tren Bala",
+  "si": 29,
+  "beats": 1012,
+  "flip": 0.12637241985068073,
+  "e_mean": 2.7472627044205056,
+  "switch_beat": 1011,
+  "switch_time": 321.8926696777344,
+  "switch_whole": false,
+  "switch_gain": -0.045552333196004234,
+  "switch_flip_after": 0.05555555555555555,
+  "stretch": [
+   558,
+   584
+  ],
+  "stretch_time": [
+   178.4812469482422,
+   186.71853637695312
+  ],
+  "stretch_gain": 9.428894390662512,
+  "stretch_flip": 0.547008547008547,
+  "annotated_shifts": [
+   [
+    212,
+    69.01249694824219
+   ]
+  ],
+  "blocks": "RRRRRRRRrrrrRrRRRRRRRRRRRRRRRRRRRrrffRrRrRRRRRRRRRRrrrrRrrRrRRrR"
+ },
+ {
+  "song": "C\u00f3mo Lo Hacen",
+  "si": 16,
+  "beats": 940,
+  "flip": 0.13008274231678485,
+  "e_mean": 3.5590325774704206,
+  "switch_beat": 942,
+  "switch_time": 304.0453796386719,
+  "switch_whole": false,
+  "switch_gain": -2.3936163319481745,
+  "switch_flip_after": 0.1111111111111111,
+  "stretch": [
+   3,
+   19
+  ],
+  "stretch_time": [
+   2.020900011062622,
+   7.056300163269043
+  ],
+  "stretch_gain": 9.277732292811077,
+  "stretch_flip": 0.515625,
+  "annotated_shifts": [],
+  "blocks": "frRrrRRrrrrrrrrrfrrrrRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR"
+ },
+ {
+  "song": "Confio En Ti",
+  "si": 90,
+  "beats": 853,
+  "flip": 0.19745668881073333,
+  "e_mean": 2.044022713126332,
+  "switch_beat": 848,
+  "switch_time": 304.691162109375,
+  "switch_whole": false,
+  "switch_gain": 5.451397895812988,
+  "switch_flip_after": 0.5138888888888888,
+  "stretch": [
+   80,
+   93
+  ],
+  "stretch_time": [
+   30.076875686645508,
+   34.725833892822266
+  ],
+  "stretch_gain": 9.164130727450054,
+  "stretch_flip": 0.6666666666666667,
+  "annotated_shifts": [],
+  "blocks": "rrrrrFrrrrRRRrRrrRRRRrrrfrrRRRRRRrRRRrrrRRrRRrrRRrrrrf"
+ },
+ {
+  "song": "Casino Rueda",
+  "si": 2,
+  "beats": 877,
+  "flip": 0.13890472570632206,
+  "e_mean": 2.760410083425026,
+  "switch_beat": 879,
+  "switch_time": 264.34381103515625,
+  "switch_whole": false,
+  "switch_gain": -3.5628337462743125,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   55,
+   64
+  ],
+  "stretch_time": [
+   17.156299591064453,
+   19.8664493560791
+  ],
+  "stretch_gain": 8.72148429022895,
+  "stretch_flip": 0.6296296296296295,
+  "annotated_shifts": [],
+  "blocks": "RfrfrRrRrRrRRRRRRRRrRRRRRrRRRRRRRrRRRRRRRrRrRRRRRRrrrrR"
+ },
+ {
+  "song": "El Cuchi Cuchi",
+  "si": 25,
+  "beats": 884,
+  "flip": 0.09048202614379085,
+  "e_mean": 3.3193261602475808,
+  "switch_beat": 886,
+  "switch_time": 293.7161560058594,
+  "switch_whole": false,
+  "switch_gain": -5.47374341222975,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   769,
+   777
+  ],
+  "stretch_time": [
+   255.2293701171875,
+   257.8637390136719
+  ],
+  "stretch_gain": 7.5258297390408,
+  "stretch_flip": 0.5138888888888888,
+  "annotated_shifts": [],
+  "blocks": "RRRrRRRrrrRrRRRRRRrrrRRRRRRRRRRRRRRRRRRRRRRRRRRrrRrRrRRR"
+ },
+ {
+  "song": "Fatti Mandare Dalla Mamma",
+  "si": 72,
+  "beats": 909,
+  "flip": 0.06533431120889867,
+  "e_mean": 4.1812658969992755,
+  "switch_beat": 911,
+  "switch_time": 294.05767822265625,
+  "switch_whole": false,
+  "switch_gain": -1.7088846233155992,
+  "switch_flip_after": 0.1111111111111111,
+  "stretch": [
+   449,
+   455
+  ],
+  "stretch_time": [
+   145.0152587890625,
+   146.962890625
+  ],
+  "stretch_gain": 7.001814375321071,
+  "stretch_flip": 0.611111111111111,
+  "annotated_shifts": [
+   [
+    132,
+    42.74708938598633
+   ],
+   [
+    344,
+    111.13217163085938
+   ]
+  ],
+  "blocks": "rrRRRRRRRRRRRRRRRRRRRrRRRRRRrrRRRRRRRRRRRRRRRRRRRRRRRRRRR"
+ },
+ {
+  "song": "Te Amo, Te Extra\u00f1o",
+  "si": 99,
+  "beats": 781,
+  "flip": 0.10522478304168446,
+  "e_mean": 3.3332981035157854,
+  "switch_beat": 783,
+  "switch_time": 329.0499572753906,
+  "switch_whole": false,
+  "switch_gain": -1.8217682970894709,
+  "switch_flip_after": 0.1111111111111111,
+  "stretch": [
+   99,
+   108
+  ],
+  "stretch_time": [
+   40.521976470947266,
+   44.22959899902344
+  ],
+  "stretch_gain": 6.229071372085147,
+  "stretch_flip": 0.6296296296296295,
+  "annotated_shifts": [],
+  "blocks": "RRRRRrrrrRRRRRrrRRRRRRRRRrRrRrRRRRRRRRRrrRRRRRRRR"
+ },
+ {
+  "song": "Notte Cubana",
+  "si": 60,
+  "beats": 569,
+  "flip": 0.17606424526459677,
+  "e_mean": 2.4238048576522715,
+  "switch_beat": 630,
+  "switch_time": 216.1295166015625,
+  "switch_whole": false,
+  "switch_gain": -3.7621196375952826,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   245,
+   249
+  ],
+  "stretch_time": [
+   84.86250305175781,
+   86.2249984741211
+  ],
+  "stretch_gain": 5.97151243686676,
+  "stretch_flip": 0.875,
+  "annotated_shifts": [],
+  "blocks": "RRrrrrrrrrrrrr rrrRrRRRrrr rrRRrRrrrRRRR"
+ },
+ {
+  "song": "La Vida Es Un Carnaval",
+  "si": 31,
+  "beats": 940,
+  "flip": 0.19794621749408986,
+  "e_mean": 2.584270395800454,
+  "switch_beat": 938,
+  "switch_time": 271.8600158691406,
+  "switch_whole": false,
+  "switch_gain": 0.8807164563073051,
+  "switch_flip_after": 0.5111111111111111,
+  "stretch": [
+   120,
+   133
+  ],
+  "stretch_time": [
+   35.84023666381836,
+   39.592525482177734
+  ],
+  "stretch_gain": 5.318855457835727,
+  "stretch_flip": 0.4700854700854701,
+  "annotated_shifts": [],
+  "blocks": "rrrrRrrrrRrRRrrRrfrrrRrrrRrRRRRrrrrrRRRRRRRRRRRRRRRRRrrrrrr"
+ },
+ {
+  "song": "Mi Mulata",
+  "si": 44,
+  "beats": 765,
+  "flip": 0.13513071895424836,
+  "e_mean": 2.9860991700390755,
+  "switch_beat": 767,
+  "switch_time": 253.17713928222656,
+  "switch_whole": false,
+  "switch_gain": -4.404016680187649,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   580,
+   583
+  ],
+  "stretch_time": [
+   191.55624389648438,
+   192.54531860351562
+  ],
+  "stretch_gain": 3.5626182158788042,
+  "stretch_flip": 0.7777777777777777,
+  "annotated_shifts": [],
+  "blocks": "rRRrRRRRRRRRRrrRRRRrrrrRRRrRRrrrrrRRrrrrRRRRRRRR"
+ },
+ {
+  "song": "Lluvia Con Nieve",
+  "si": 83,
+  "beats": 619,
+  "flip": 0.13332435828397055,
+  "e_mean": 1.5077265763504515,
+  "switch_beat": 621,
+  "switch_time": 188.6902313232422,
+  "switch_whole": false,
+  "switch_gain": -0.5246484412087334,
+  "switch_flip_after": 0.1111111111111111,
+  "stretch": [
+   474,
+   479
+  ],
+  "stretch_time": [
+   143.9947967529297,
+   145.46644592285156
+  ],
+  "stretch_gain": 2.946082015832265,
+  "stretch_flip": 0.5777777777777778,
+  "annotated_shifts": [],
+  "blocks": "RRRRRRRRRRRRrRrrRRRRrRRRRRrrRrrRRRRRRRR"
+ },
+ {
+  "song": "Te Amar\u00e9",
+  "si": 80,
+  "beats": 685,
+  "flip": 0.06482157339821575,
+  "e_mean": 3.299607984424362,
+  "switch_beat": 687,
+  "switch_time": 247.397705078125,
+  "switch_whole": false,
+  "switch_gain": -3.0986773437923856,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   443,
+   449
+  ],
+  "stretch_time": [
+   163.72689819335938,
+   165.84097290039062
+  ],
+  "stretch_gain": 2.883082217640347,
+  "stretch_flip": 0.4444444444444445,
+  "annotated_shifts": [],
+  "blocks": "RRRRRRRRRRRRRRrRrRRRRRRRRrRrRRRRRRRRRRRRRRR"
+ },
+ {
+  "song": "La Comay",
+  "si": 41,
+  "beats": 786,
+  "flip": 0.18211054566016396,
+  "e_mean": 1.835509559464532,
+  "switch_beat": 813,
+  "switch_time": 275.346923828125,
+  "switch_whole": false,
+  "switch_gain": -2.5337946679857044,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   32,
+   40
+  ],
+  "stretch_time": [
+   11.796412467956543,
+   14.510712623596191
+  ],
+  "stretch_gain": 2.8364589512348175,
+  "stretch_flip": 0.65625,
+  "annotated_shifts": [],
+  "blocks": " rfrrrRRRRRRrRRrrRRRRRrrrRRrrrrrrrRRRRrrrrrRRRrrRrR"
+ },
+ {
+  "song": "Clocks",
+  "si": 24,
+  "beats": 612,
+  "flip": 0.07777323892519972,
+  "e_mean": 4.347486344841766,
+  "switch_beat": 638,
+  "switch_time": 293.5137634277344,
+  "switch_whole": false,
+  "switch_gain": -3.9448213974634805,
+  "switch_flip_after": 0.1111111111111111,
+  "stretch": [
+   236,
+   239
+  ],
+  "stretch_time": [
+   109.38018798828125,
+   110.75129699707031
+  ],
+  "stretch_gain": 2.8164697819285927,
+  "stretch_flip": 0.5555555555555556,
+  "annotated_shifts": [],
+  "blocks": " rRRRrrRRRRRRRrRRRRRrrRrRRRRRRRRRRRRRRRR"
+ },
+ {
+  "song": "Dile A Ella",
+  "si": 3,
+  "beats": 850,
+  "flip": 0.0929248366013072,
+  "e_mean": 3.4478617454977596,
+  "switch_beat": 878,
+  "switch_time": 300.3215637207031,
+  "switch_whole": false,
+  "switch_gain": -2.87496809164683,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   275,
+   278
+  ],
+  "stretch_time": [
+   99.39342498779297,
+   100.52104949951172
+  ],
+  "stretch_gain": 2.2323563992977142,
+  "stretch_flip": 1.0,
+  "annotated_shifts": [],
+  "blocks": "RRRRRRRRRRRRRRRr rrRRRRRRRRRRRRrRRRRrrRRRRRRRRrRRRRRRrr"
+ },
+ {
+  "song": "Te Toca Ahora",
+  "si": 63,
+  "beats": 829,
+  "flip": 0.12156547379707815,
+  "e_mean": 2.2765021478891323,
+  "switch_beat": 831,
+  "switch_time": 238.02296447753906,
+  "switch_whole": false,
+  "switch_gain": -1.7057627770635817,
+  "switch_flip_after": 0.1111111111111111,
+  "stretch": [
+   97,
+   109
+  ],
+  "stretch_time": [
+   28.371875762939453,
+   31.803125381469727
+  ],
+  "stretch_gain": 2.1511261330710516,
+  "stretch_flip": 0.4074074074074074,
+  "annotated_shifts": [],
+  "blocks": "RRRrRrfrrRrrrRRrrRrrrrRRRRRrrRRRRRRRRRRRRRRRRRRRRRRR"
+ },
+ {
+  "song": "Salsa #5",
+  "si": 8,
+  "beats": 739,
+  "flip": 0.1474590287174861,
+  "e_mean": 1.8663307378465404,
+  "switch_beat": 774,
+  "switch_time": 237.4630126953125,
+  "switch_whole": false,
+  "switch_gain": -1.0035123295254178,
+  "switch_flip_after": 0.2222222222222222,
+  "stretch": [
+   651,
+   656
+  ],
+  "stretch_time": [
+   200.56500244140625,
+   202.05874633789062
+  ],
+  "stretch_gain": 2.123381210698022,
+  "stretch_flip": 0.3777777777777777,
+  "annotated_shifts": [],
+  "blocks": "  rrRRRRrrRRRRRrRRrRRrrrRRRRRRRRRRRrrrrrRrrrrrRRR"
+ },
+ {
+  "song": "Bandolera",
+  "si": 96,
+  "beats": 894,
+  "flip": 0.09386651752423564,
+  "e_mean": 3.6723528080509906,
+  "switch_beat": 896,
+  "switch_time": 262.6481628417969,
+  "switch_whole": false,
+  "switch_gain": -2.6533110406663685,
+  "switch_flip_after": 0.1111111111111111,
+  "stretch": [
+   525,
+   531
+  ],
+  "stretch_time": [
+   154.03347778320312,
+   155.78814697265625
+  ],
+  "stretch_gain": 2.0869309107462564,
+  "stretch_flip": 0.6296296296296295,
+  "annotated_shifts": [],
+  "blocks": "RRRRRRRrRRRRRrRRrrRrrrRrRrRRRRRrrrRRRRRRRRRRRRrRRRRRRRRRR"
+ },
+ {
+  "song": "I Love Salsa",
+  "si": 19,
+  "beats": 912,
+  "flip": 0.10171479044834307,
+  "e_mean": 3.065931980942465,
+  "switch_beat": 909,
+  "switch_time": 248.33718872070312,
+  "switch_whole": false,
+  "switch_gain": -0.11005612876680171,
+  "switch_flip_after": 0.24074074074074073,
+  "stretch": [
+   8,
+   11
+  ],
+  "stretch_time": [
+   3.9412999153137207,
+   4.766300201416016
+  ],
+  "stretch_gain": 1.790699303150177,
+  "stretch_flip": 0.8333333333333334,
+  "annotated_shifts": [],
+  "blocks": "rrRRRRRRRrRRRRRRRrrRRRRRRrRRRRRRRRrrrRRRRRRRrrRRRRrrrrrRrR"
+ },
+ {
+  "song": "Tres D\u00edas",
+  "si": 5,
+  "beats": 300,
+  "flip": 0.13523148148148148,
+  "e_mean": 2.1470671066821176,
+  "switch_beat": 864,
+  "switch_time": 295.4281921386719,
+  "switch_whole": false,
+  "switch_gain": -3.9168315993414984,
+  "switch_flip_after": 0.1111111111111111,
+  "stretch": [
+   783,
+   784
+  ],
+  "stretch_time": [
+   267.7953186035156,
+   268.1351623535156
+  ],
+  "stretch_gain": 1.3896899223327637,
+  "stretch_flip": 0.0,
+  "annotated_shifts": [],
+  "blocks": "RRR        rR RRRrr        rRRRrr   rr     R RR RR RRRR"
+ },
+ {
+  "song": "Despues De Todo",
+  "si": 58,
+  "beats": 1029,
+  "flip": 0.09318648094158298,
+  "e_mean": 3.586463725768957,
+  "switch_beat": 1058,
+  "switch_time": 358.6433410644531,
+  "switch_whole": false,
+  "switch_gain": -3.695548507902357,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   786,
+   789
+  ],
+  "stretch_time": [
+   267.493408203125,
+   268.5
+  ],
+  "stretch_gain": 1.2615013122558594,
+  "stretch_flip": 0.6296296296296297,
+  "annotated_shifts": [],
+  "blocks": "RRRrRRrRRRRRRRRrR RRRRRRRrRRrRRRRRRRRrRRRrRRRRRrRrRrRrRRrRRRrrRRRRR"
+ },
+ {
+  "song": "Zorra",
+  "si": 91,
+  "beats": 764,
+  "flip": 0.110456660849331,
+  "e_mean": 3.160928149405301,
+  "switch_beat": 766,
+  "switch_time": 240.16786193847656,
+  "switch_whole": false,
+  "switch_gain": -2.4695221185684204,
+  "switch_flip_after": 0.1111111111111111,
+  "stretch": [
+   279,
+   282
+  ],
+  "stretch_time": [
+   88.01551055908203,
+   88.95067596435547
+  ],
+  "stretch_gain": 1.1525188552008734,
+  "stretch_flip": 0.5555555555555556,
+  "annotated_shifts": [],
+  "blocks": "RrRRRRRrRRRRRRRRRrRRRRRRRRRRRRrrRrRRrrrrrRrrRRRr"
+ },
+ {
+  "song": "Me Siento Todo De Ti",
+  "si": 33,
+  "beats": 949,
+  "flip": 0.08236740428521251,
+  "e_mean": 3.430603367624877,
+  "switch_beat": 951,
+  "switch_time": 350.7822265625,
+  "switch_whole": false,
+  "switch_gain": -1.1355825596385531,
+  "switch_flip_after": 0.3333333333333333,
+  "stretch": [
+   588,
+   591
+  ],
+  "stretch_time": [
+   216.39065551757812,
+   217.48988342285156
+  ],
+  "stretch_gain": 0.997086034880744,
+  "stretch_flip": 0.6296296296296297,
+  "annotated_shifts": [],
+  "blocks": "rrRRRRRRRRRRRrRRRRRRRrRRRRRRRRRRRRrRrRRRRRRRRRRRrRRRRRrRRrrR"
+ },
+ {
+  "song": "Acid",
+  "si": 15,
+  "beats": 781,
+  "flip": 0.06501636079100868,
+  "e_mean": 3.9598793959281386,
+  "switch_beat": 783,
+  "switch_time": 298.706298828125,
+  "switch_whole": false,
+  "switch_gain": -2.8845147556728787,
+  "switch_flip_after": 0.0,
+  "stretch": [
+   549,
+   550
+  ],
+  "stretch_time": [
+   208.35784912109375,
+   208.74456787109375
+  ],
+  "stretch_gain": 0.7653079099125333,
+  "stretch_flip": 0.5555555555555556,
+  "annotated_shifts": [],
+  "blocks": "RRRRRRRRRRRRRRrRrRRRRRRRRRRRRRRRRRrRRRRRRRRRRRRRR"
+ },
+ {
+  "song": "No Me Celes",
+  "si": 22,
+  "beats": 604,
+  "flip": 0.19492733627667402,
+  "e_mean": 2.4198216702048945,
+  "switch_beat": 606,
+  "switch_time": 187.6419677734375,
+  "switch_whole": false,
+  "switch_gain": -1.124061604340871,
+  "switch_flip_after": 0.2222222222222222,
+  "stretch": [
+   439,
+   441
+  ],
+  "stretch_time": [
+   136.0031280517578,
+   136.62109375
+  ],
+  "stretch_gain": 0.6999419530232748,
+  "stretch_flip": 0.5,
+  "annotated_shifts": [],
+  "blocks": "RRrrrrrrRRRrRrrrrrrrRRRrrrrrrRRrRRRrrr"
+ },
+ {
+  "song": "Il ginecologo del ritmo",
+  "si": 54,
+  "beats": 1180,
+  "flip": 0.13280367231638418,
+  "e_mean": 3.2284029271664085,
+  "switch_beat": 1182,
+  "switch_time": 348.1004638671875,
+  "switch_whole": false,
+  "switch_gain": -2.672648482852512,
+  "switch_flip_after": 0.3333333333333333,
+  "stretch": [
+   5,
+   6
+  ],
+  "stretch_time": [
+   1.926285743713379,
+   2.2200429439544678
+  ],
+  "stretch_gain": 0.45493364334106445,
+  "stretch_flip": 0.5,
+  "annotated_shifts": [],
+  "blocks": "rRrRRRRRrrRrRrRRRRRrRRRRRRrrRrrrrrrRRRrrrrrRRRRRRrrRRRRrRrRRRRRRrRRRRRRRRR"
+ },
+ {
+  "song": "Yamulemau",
+  "si": 10,
+  "beats": 699,
+  "flip": 0.04937609283102845,
+  "e_mean": 4.130986819347239,
+  "switch_beat": 701,
+  "switch_time": 250.87379455566406,
+  "switch_whole": false,
+  "switch_gain": -4.45785657564799,
+  "switch_flip_after": 0.1111111111111111,
+  "stretch": [
+   388,
+   389
+  ],
+  "stretch_time": [
+   140.38125610351562,
+   140.72030639648438
+  ],
+  "stretch_gain": 0.44838976860046387,
+  "stretch_flip": 0.6666666666666666,
+  "annotated_shifts": [],
+  "blocks": "RRRRRRRRRRRRRRRRRRRRRRRrrRRRRRRRRRRrRRRRRRRR"
+ },
+ {
+  "song": "Oye Como Va",
+  "si": 86,
+  "beats": 461,
+  "flip": 0.023379127500602552,
+  "e_mean": 4.5514617172920815,
+  "switch_beat": 463,
+  "switch_time": 207.78750610351562,
+  "switch_whole": false,
+  "switch_gain": -5.541234387291802,
+  "switch_flip_after": 0.1111111111111111,
+  "stretch": [
+   0,
+   0
+  ],
+  "stretch_time": [
+   0.6008999943733215,
+   0.6008999943733215
+  ],
+  "stretch_gain": 0.0,
+  "stretch_flip": 0.0,
+  "annotated_shifts": [],
+  "blocks": "RRRRRRRRRRRRRRRRRRRRRRRRRRRRR"
+ },
+ {
+  "song": "Piano Guaguanco",
+  "si": 48,
+  "beats": 469,
+  "flip": 0.02540867093105899,
+  "e_mean": 4.297153460480991,
+  "switch_beat": 471,
+  "switch_time": 167.8592529296875,
+  "switch_whole": false,
+  "switch_gain": -3.6164298719829984,
+  "switch_flip_after": 0.1111111111111111,
+  "stretch": [
+   0,
+   0
+  ],
+  "stretch_time": [
+   7.47629976272583,
+   7.47629976272583
+  ],
+  "stretch_gain": 0.0,
+  "stretch_flip": 0.0,
+  "annotated_shifts": [],
+  "blocks": "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRR"
+ }
+]

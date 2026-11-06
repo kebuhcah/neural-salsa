@@ -72,8 +72,8 @@ notching it out fixes every seed (section 13a).
   commitments, which are whole-song 1<->5 inversions. Open:
   - an audio-dependent reset hazard, for following shifts;
   - a temper that changes over time, or stride;
-  - finding and fixing the inverted songs (the song-level problem is the
-    asymptote).
+  - the inverted songs (the song-level problem is the asymptote): 14v lists
+    16, with ten waiting on a listening check.
 - **Anticipation** (14s): sections change on the 1 (35% of novelty peaks),
   but no model gets more accurate after a change. Candidates: a filter whose
   reset probability depends on the audio, or an auxiliary section-boundary
@@ -2433,6 +2433,89 @@ calibrated going in. What limits it now:
 2. A constant temper and reset rate. Next: an audio-dependent reset hazard
    from novelty, and a temper that depends on how long the filter has run,
    or stride as in section 7.
+
+### 14v. The inverted songs: where all models read the 1 as the 5
+
+What limits the 14u filter is whole stretches of songs read with the 1 and
+the 5 swapped. `tools/inversion_scan.py` pools the nine 14s models' held-out
+predictions per beat, using two measures:
+
+- **e**: mean log p(true) - log p(true+4);
+- **flip**: the share of predictions on true+4.
+
+For each song it fits two forms: the best single +4 switch ("from beat k
+on, the annotation +4 explains the predictions best"; k at the start means
+the whole song), and the most inverted contiguous stretch. Output is in
+`data/cv_wsweep/inversion_scan.json`.
+
+**The top sixteen by gain**, with no sharp cutoff: the 16th has 323 nats,
+the 17th (Amor y Control, sections 13-13c) 317.
+Their inverted regions hold 9% of all windows.
+
+- **The inversions are consensus, not model quirks.** Inside each region the
+  4-beat models also predict true+4 in 0.48-0.81 of windows (Llorarás,
+  0.32, is the exception), against ~0.22 for beatseqc W=4 overall. So do both architectures
+  at every W.
+- **They cost 0.04 per window at most.** If every region were a label error,
+  relabelling it would move per-window accuracy 0.760 -> 0.803 (beatseqc
+  W=48), 0.757 -> 0.798 (gru W=24) and 0.601 -> 0.635 (beatseqc W=4). This
+  is an upper bound, and circular: the regions were chosen from these
+  predictions.
+
+| song | annotated shifts | what the models read | status |
+|---|---|---|---|
+| Miami | none | whole song inverted (flip 82%) | **checked by ear (14e): annotation mostly right**; model failure |
+| El Bembé | 2:43.6 | inverted almost throughout (70%) | **annotation confirmed from 3:10 (14f)**; drums mislead |
+| Dicen Que Dicen | 1:46.6 | inverted from 1:49.3 to the end (74%): **no shift** | listen: is there a shift at 1:46? |
+| Como Te Quise Yo | none | inverted from **1:48.1** to the end (79%) | listen: a missing shift? |
+| Otra Oportunidad | none | inverted from 2:56.2 to the end (80%) | half-split says model failure (below) |
+| Merecumbe | 2:56.5, 4:42.3 | inverted 1:06.7-2:56.5 (83%): first shift **at ~1:07**, not 2:56 | listen |
+| Ave Maria Que Calor | 1:02.5 | inverted from 2:11.8 to the end (73%) | listen |
+| Yo No Se Mañana | none | inverted 1:04.3-4:15.4 (68%); the start is unscored (gaps) | listen |
+| Dame Una Oportunidad | 0:10.6 | inverted from 1:32.0 to the end (68%) | listen |
+| Todo Tiene Su Final | none | inverted section 1:50.6-3:28.2 (76%), right before and after | likely a section the models misread |
+| Busco | 3:05.5 | inverted 1:12.5-3:04.1 (62%): shift **at ~1:12**, not 3:05 | listen |
+| Celia Cruz Medley | 2:03.6 | inverted 1:01.5-2:03.6 (63%): shift **at ~1:01**, not 2:03 | listen: a medley boundary at 1:01? |
+| Cuanto Te Di | 4 (last 2:51.5) | inverted from 2:56.4 (73%): **no last shift** | listen: is the 2:51 shift real? |
+| Llorarás | none | leans inverted from 0:56.4 (55%); W=4 models at 0.32 | weak, mostly long-window models |
+| Que Te Vas | none | inverted section 1:28.3-2:12.3 (75%) | sectional |
+| Que Te Vas (remix) | none | inverted section 2:32.6-3:56.4 (73%) | sectional |
+
+The patterns:
+
+- **Shift placement disagreements.** In Merecumbe, Busco and Celia Cruz
+  Medley the models and the annotation agree on one +4 change, but the
+  models put it 1-2 minutes earlier than the annotation. Each inverted
+  stretch ends exactly at the annotated shift (by construction), so only its
+  start is informative.
+- **Annotated shifts the models do not follow.** In Dicen Que Dicen, and at
+  Cuanto Te Di's last shift, the models' phase runs straight through. Most
+  annotated shifts are followed (14b), so these two are worth hearing.
+- **A switch with no annotation:** Como Te Quise Yo (1:48) and Ave Maria
+  (2:11).
+
+**The half-split cross-check (14l data).** Training on a song's first half
+taught the models its annotated second half for Miami, Otra Oportunidad and
+Dame Una Oportunidad: second-half accuracy went from 0.04 to 0.71, 0.05 to
+0.62 and 0.26 to 0.58. This discriminates only when the inverted region lies
+wholly in the second half. Otherwise the first half's labels in the region
+are learned as they stand, right or wrong.
+
+- **Otra Oportunidad** qualifies: the switch at beat 525 is just past the
+  midpoint, 504. A real missing shift there would have kept the second half
+  inverted. That, and its chroma models agreeing with the label (14j), make
+  it a model failure.
+- **Miami** is whole-song, so the cross-check cannot judge it. The ear
+  already did: the annotation is mostly right.
+- **Dame Una Oportunidad's** region starts at beat 268, before its midpoint
+  (389), so the cross-check cannot judge it either.
+
+**Status.** No labels are changed. Ten songs need listening at the times
+above. If confirmed errors turn up, 14j's plan applies: a tracked
+corrections file, so old results stay comparable. Whatever the outcome,
+Miami, El Bembé, Otra Oportunidad and Todo Tiene Su Final are confident
+whole-section model failures with correct labels. They are the cases a better
+1-vs-5 cue has to fix, and the piano is the user's own cue (14f).
 
 ---
 

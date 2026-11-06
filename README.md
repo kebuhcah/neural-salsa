@@ -90,6 +90,7 @@ python tools/transition_profile.py b48='data/cv_ens_logp/beatseqc_w48_splitcv6.*
 python tools/calibrate.py data/cv_wsweep_logp    # per-fold temperatures, cross-fitted; NLL/ECE before and after
 python tools/lock_latency.py data/cv_wsweep_logp data/cv_wsweep/temperatures.json
                                    # forward filter: accuracy and lock vs beats heard, many start points
+python tools/inversion_scan.py data/cv_wsweep_logp   # where all models read the 1 as the 5, with times to listen at
 ```
 
 **Ensemble** saved predictions:
