@@ -18,6 +18,15 @@ the 1<->5 inversion on Amor y Control (NOTES section 13a).
     cd data/explorer && python3 -m http.server 8765
     # then open http://localhost:8765/<song>.html
 
+With --inversions (tools/inversion_scan.py --json output), each page also
+shows where the CV models read the song with the 1 and the 5 swapped (a strip
+along the top), buttons to jump to the scan's switch points and the annotated
+shifts, and a "+4" toggle that makes the count follow the models' reading, to
+compare the two candidate 1s by ear (NOTES 14v). --top N builds the scan's
+first N songs and an index.html listing them:
+
+    python3 tools/spectro_explorer.py --inversions data/cv_wsweep/inversion_scan.json --top 16
+
 Beat times, counts, title and artist come from data/features/*.npz -- the same
 contract the modelling code reads -- so this file has no dependency on the
 grid decoder and is tracked. It still needs the local audio (data/audio/) to
@@ -31,6 +40,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import unicodedata
 from pathlib import Path
 
 import numpy as np
@@ -144,17 +154,34 @@ def voice_leads(out):
     return leads
 
 
-def build(song_query):
+def fmt_t(t):
+    return f"{int(t // 60)}:{t % 60:04.1f}"
+
+
+def scan_entry(scan, title):
+    """The inversion-scan row for this song, or None. Titles are compared in
+    NFC: the feature files and the scan can store accents differently."""
+    key = unicodedata.normalize("NFC", title)
+    for r in scan or []:
+        if unicodedata.normalize("NFC", r["song"]) == key:
+            return r
+    return None
+
+
+def build(song_query, scan=None):
     OUT.mkdir(parents=True, exist_ok=True)
     make_voice(OUT)
     cand = []
     for f in sorted(FEAT.glob("*.npz")):
         z = np.load(f, allow_pickle=True)
         title = str(z["title"]) if "title" in z.files else ""
-        if song_query.lower() in title.lower():
+        if unicodedata.normalize("NFC", song_query).lower() in unicodedata.normalize("NFC", title).lower():
             cand.append(z)
     if not cand:
         sys.exit(f"no song matching {song_query!r} in {FEAT}")
+    exact = [z for z in cand if unicodedata.normalize("NFC", str(z["title"])).lower()
+             == unicodedata.normalize("NFC", song_query).lower()]
+    cand = exact or cand                 # "Que Te Vas" must not pick "Que Te Vas (remix)"
     if len(cand) > 1:
         print("multiple matches, using the first:")
         for z in cand:
@@ -177,10 +204,24 @@ def build(song_query):
             "beats": beats, "box": box, "voiceLead": voice_leads(OUT),
             "bands": [{"name": n, "lo": lo, "hi": hi}
                       for n, (lo, hi) in zip(BAND_NAMES, BAND_EDGES)]}
+    r = scan_entry(scan, title)
+    if r:
+        # Strip: one cell per 16 beats starting at beat 0 (inversion_scan.BLOCK).
+        times = z["times"]
+        data["inv"] = {"cells": [{"t0": float(times[i * 16]),
+                                  "t1": float(times[min(i * 16 + 16, len(times) - 1)]), "k": k}
+                                 for i, k in enumerate(r["blocks"]) if i * 16 < len(times)],
+                       "flip": r["flip"]}
+        marks = [{"t": t, "label": f"annotated shift {fmt_t(t)}"} for _, t in r["annotated_shifts"]]
+        if not r["switch_whole"]:
+            marks.append({"t": r["switch_time"], "label": f"models flip from {fmt_t(r['switch_time'])}"})
+        a, b = r["stretch_time"]
+        marks.append({"t": a, "label": f"inverted stretch {fmt_t(a)}-{fmt_t(b)}"})
+        data["marks"] = sorted({m["t"]: m for m in marks}.values(), key=lambda m: m["t"])
     html = TEMPLATE.replace("__DATA__", json.dumps(data)).replace("__SLUG__", slug)
     (OUT / f"{slug}.html").write_text(html)
     print(f"wrote {OUT / slug}.html  ({len(beats)} beats)")
-    return slug
+    return slug, title, artist, r
 
 
 TEMPLATE = r"""<!doctype html><meta charset=utf-8>
@@ -221,6 +262,11 @@ TEMPLATE = r"""<!doctype html><meta charset=utf-8>
   <label><input type=checkbox id=duck checked> duck music under voice</label>
   <span id=status></span>
 </div>
+<div class=row id=invrow style="display:none">
+  <label><input type=checkbox id=plus4> count +4 (as the models hear it)</label>
+  <span class=lbl>jump to:</span><span id=marks></span>
+  <span class=lbl id=invkey></span>
+</div>
 <div class=row id=bands><span class=lbl>band:</span></div>
 <div class=row id=mutes><span class=lbl>mute:</span></div>
 <div class=row>
@@ -236,6 +282,18 @@ edges. Ticks are beats; tall green ticks are the 1, amber are the 5.
 combination of bands (shaded on the spectrogram) and stacks with them.</p>
 <script>
 const D=__DATA__;
+// "+4": show and speak the count the models hear in inverted stretches, i.e.
+// the annotation shifted by four beats (1 <-> 5).
+const p4=document.getElementById('plus4');
+const cnt=c=>p4&&p4.checked?((c+3)%8)+1:c;
+if(D.inv){
+  document.getElementById('invrow').style.display='';
+  document.getElementById('invkey').textContent='top strip: models flipped (red) / right (green) per 16 beats, '+
+    Math.round(D.inv.flip*100)+'% flipped overall';
+  (D.marks||[]).forEach(m=>{ const el=document.createElement('button'); el.textContent=m.label;
+    el.onclick=()=>seek(Math.max(0,m.t-4)); document.getElementById('marks').appendChild(el); });
+  p4.addEventListener('change',()=>{ if(ctx) resetVoice(); });
+}
 document.getElementById('ttl').textContent=D.artist+' \u2014 '+D.title;
 const NY=11025, LOF=20;
 const F2S=f=>Math.log(f/LOF)/Math.log(NY/LOF), S2F=s=>LOF*Math.pow(NY/LOF,s);
@@ -329,13 +387,13 @@ function scheduleVoice(){
   if(!playing||!countEl.checked||!ctx) return;
   const horizon=now()+0.35;                         // > the longest voice lead
   while(nextBeat<D.beats.length && D.beats[nextBeat].t<horizon){
-    const b=D.beats[nextBeat++];
-    if((b.c!==1&&b.c!==5)||!voice[b.c]) continue;
+    const b=D.beats[nextBeat++], c=cnt(b.c);
+    if((c!==1&&c!==5)||!voice[c]) continue;
     // song time -> audio clock, started early so the word is heard on the beat
-    const when=startedAt+(b.t-offset)-((D.voiceLead||{})[b.c]||0);
+    const when=startedAt+(b.t-offset)-((D.voiceLead||{})[c]||0);
     if(when<ctx.currentTime-0.02) continue;
-    const s=ctx.createBufferSource(); s.buffer=voice[b.c]; s.connect(voiceGain);
-    const at=Math.max(when,ctx.currentTime), end=at+voice[b.c].duration;
+    const s=ctx.createBufferSource(); s.buffer=voice[c]; s.connect(voiceGain);
+    const at=Math.max(when,ctx.currentTime), end=at+voice[c].duration;
     s.start(at);
     if(document.getElementById('duck').checked){    // dip the music for the word only
       const g=musicBus.gain;
@@ -396,12 +454,19 @@ function draw(){
   D.bands.forEach((b,i)=>{ if(muted[i]){ const ya=fy(b.hi), yb=fy(b.lo);
     g.fillRect(xa,ya,xb-xa,yb-ya); } });
   const step=D.beats.length>1200?2:1;
-  for(let i=0;i<D.beats.length;i+=step){ const b=D.beats[i];
-    if(b.c!==1&&b.c!==5&&step>1)continue;
+  for(let i=0;i<D.beats.length;i+=step){ const b=D.beats[i], c=cnt(b.c);
+    if(c!==1&&c!==5&&step>1)continue;
     const x=px(b.t);
-    g.strokeStyle=b.c===1?'#0f8':(b.c===5?'#fa0':'#666');
-    g.lineWidth=b.c===1?2:1;
-    g.beginPath(); g.moveTo(x,y1); g.lineTo(x,y1-(b.c===1?18:(b.c===5?11:6))); g.stroke(); }
+    g.strokeStyle=c===1?'#0f8':(c===5?'#fa0':'#666');
+    g.lineWidth=c===1?2:1;
+    g.beginPath(); g.moveTo(x,y1); g.lineTo(x,y1-(c===1?18:(c===5?11:6))); g.stroke(); }
+  if(D.inv){                                   // inversion strip along the top
+    const col={F:'#d33',f:'#844',R:'#2a6',r:'#264'};
+    D.inv.cells.forEach(k=>{ if(!col[k.k])return; g.fillStyle=col[k.k];
+      g.fillRect(px(k.t0),y0,Math.max(1,px(k.t1)-px(k.t0)),7); });
+    g.fillStyle='#fff';
+    (D.marks||[]).forEach(m=>{ const x=px(m.t); g.fillRect(x-1,y0,2,14); });
+  }
   const x=px(now());
   g.strokeStyle='#fff'; g.lineWidth=1.5;
   g.beginPath(); g.moveTo(x,y0); g.lineTo(x,y1); g.stroke();
@@ -440,9 +505,9 @@ function tick(){
   const t=now();
   let i=0,lo=0,hi=D.beats.length-1;
   while(lo<=hi){const m=(lo+hi)>>1; if(D.beats[m].t<=t){i=m;lo=m+1}else hi=m-1;}
-  const b=D.beats[i], c=document.getElementById('cnt');
-  c.textContent=b?b.c:'-';
-  c.style.color=b&&b.c===1?'#0f8':(b&&b.c===5?'#fa0':'#ddd');
+  const b=D.beats[i], c=document.getElementById('cnt'), n=b?cnt(b.c):0;
+  c.textContent=b?n:'-';
+  c.style.color=n===1?'#0f8':(n===5?'#fa0':'#ddd');
   document.getElementById('tpos').textContent=fmt(t);
   last=i; draw(); requestAnimationFrame(tick);
 }
@@ -453,9 +518,30 @@ load(); tick();
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--song", required=True)
+    ap.add_argument("--song", action="append", default=[], help="title substring; repeatable")
+    ap.add_argument("--inversions", default=None, help="tools/inversion_scan.py --json output")
+    ap.add_argument("--top", type=int, default=0, help="also build the scan's first N songs, plus index.html")
     ap.add_argument("--out", default=None, help="output directory (default data/explorer)")
     a = ap.parse_args()
     if a.out:
         OUT = Path(a.out)
-    build(a.song)
+    scan = json.load(open(a.inversions)) if a.inversions else None
+    songs = a.song + ([r["song"] for r in scan[:a.top]] if scan and a.top else [])
+    if not songs:
+        ap.error("give --song, or --inversions with --top")
+    built = [build(q, scan) for q in songs]
+    if a.top:
+        items = "".join(
+            f'<li><a href="{slug}.html">{t}</a> <span>{ar} · '
+            + (f'{r["flip"]:.0%} flipped; ' + ", ".join(m for m in
+               ([f"annotated shift {fmt_t(x)}" for _, x in r["annotated_shifts"]]
+                + ([] if r["switch_whole"] else [f"models flip from {fmt_t(r['switch_time'])}"]))) if r else "")
+            + "</span></li>"
+            for slug, t, ar, r in built)
+        (OUT / "index.html").write_text(
+            "<!doctype html><meta charset=utf-8><title>Inverted songs</title>"
+            "<style>body{background:#111;color:#ddd;font:14px/1.6 system-ui,sans-serif;margin:16px}"
+            "a{color:#6cf}span{color:#888}</style><h2>Where the models read the 1 as the 5</h2>"
+            "<p><span>NOTES 14v, from tools/inversion_scan.py. On each page the top strip shows the "
+            "models' reading; tick \"count +4\" to hear their 1.</span></p><ol>" + items + "</ol>")
+        print(f"wrote {OUT / 'index.html'}")
