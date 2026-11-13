@@ -45,9 +45,29 @@ class PhaseFilter:
         self.reset()
 
     def update(self, likelihood):
-        """likelihood: P(observation | count), shaped like the belief. A nan
-        row is no observation -- e.g. before a model's first full window --
-        and leaves that belief to the prediction step. Returns the posterior."""
+        """One beat: predict, then weigh by `likelihood`. Returns the posterior.
+
+        likelihood: shaped like the belief, any positive scale per row. The
+        forward algorithm needs p(x | c) for this beat's audio window x, up to
+        a factor that is the same for every count c -- the update renormalises,
+        so a per-row constant cancels. Callers pass the classifier's softmax
+        P(c | x), which qualifies as a "scaled likelihood". By Bayes,
+
+            P(c | x) / P(c) = p(x | c) / p(x)
+
+        p(x), the probability of the audio itself, cannot be computed, but it
+        does not depend on c, so it is one of those constants. P(c) is the
+        class prior the classifier absorbed from its training windows; it
+        must be divided out, or the prior would be counted twice -- once in
+        the classifier and once in this filter's prediction step. Here it is
+        uniform (each count is 12.4-12.6% of the 87,093 trusted beats), so
+        dividing by it is a constant too, and the softmax goes in as is. A
+        classifier trained on unbalanced counts would need its output divided
+        by the training frequencies first.
+
+        A nan row is no observation -- e.g. before a model's first full
+        window: it becomes a flat likelihood, which leaves that belief to the
+        prediction step."""
         b = self.belief
         # Predict: phase advances by `stride`; with prob r the phrase restarts.
         pred = (1 - self.r) * np.roll(b, self.stride, axis=-1)
