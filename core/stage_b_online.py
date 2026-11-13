@@ -55,9 +55,11 @@ class PhaseFilter:
         # Correct. The floor keeps a tempered zero from wiping out a state.
         lk = np.asarray(likelihood, dtype=float)
         lk = np.where(np.isnan(lk), 1.0, np.clip(lk, 1e-12, None) ** self.temper)
+        # The floor makes the sum positive for any valid belief; invalid input
+        # (an all-zero or negative belief from reset) shows up as nan rather
+        # than being quietly replaced by a uniform belief.
         post = pred * lk
-        s = post.sum(-1, keepdims=True)
-        self.belief = np.where(s > 0, post / np.where(s > 0, s, 1), 1.0 / N)
+        self.belief = post / post.sum(-1, keepdims=True)
         return self.belief
 
     def reset(self, belief=None):
