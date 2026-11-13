@@ -26,7 +26,7 @@ import torch
 import torch.nn.functional as F
 
 from train_phase import Net, load_all, DEV, FPB          # noqa: E402
-from stage_b_online import PhaseFilter                    # noqa: E402
+from stage_b_online import run                            # noqa: E402
 
 N = 8
 
@@ -47,19 +47,6 @@ def posteriors(model, song, W, bs=256):
             out.append(F.softmax(
                 model(torch.from_numpy(X).unsqueeze(1).to(DEV)), 1).cpu().numpy())
     return np.concatenate(out)
-
-
-def run_filter(post, r, temper, init=None, stride=1):
-    fil = PhaseFilter(reset_prob=r, stride=stride)
-    if init is not None:
-        fil.reset(init)
-    ph = np.empty(len(post), dtype=int)
-    cf = np.empty(len(post))
-    for i, p in enumerate(post):
-        lk = p ** temper
-        fil.update(lk / lk.sum())
-        ph[i], cf[i] = fil.phase, fil.confidence
-    return ph, cf
 
 
 def first_lock(ph, cf, truth, thresh, hold):
@@ -126,11 +113,11 @@ def main():
         post = posteriors(model, s, W)
         truth = counts[W - 1:]
 
-        ph, cf = run_filter(post, args.reset_prob, temper)
+        ph, cf = run(post, args.reset_prob, temper=temper)
         cold_t.append(first_lock(ph, cf, truth, args.thresh, args.hold))
         conf_all.append(cf); corr_all.append((ph == truth).astype(float))
 
-        phn, cfn = run_filter(post, args.reset_prob, 1.0)
+        phn, cfn = run(post, args.reset_prob)
         cold_n.append(first_lock(phn, cfn, truth, args.thresh, args.hold))
 
         # Recovery: start the filter confidently wrong, mid-song, and see how
@@ -138,7 +125,7 @@ def main():
         mid = len(post) // 2
         wrong = (truth[mid] + rng.integers(1, N)) % N
         init = np.full(N, 0.01); init[wrong] = 0.93
-        ph2, cf2 = run_filter(post[mid:], args.reset_prob, temper, init=init)
+        ph2, cf2 = run(post[mid:], args.reset_prob, init=init, temper=temper)
         recov.append(first_lock(ph2, cf2, truth[mid:], args.thresh, args.hold))
 
         # Change: at each real annotated reset, how long to re-lock?
@@ -146,7 +133,7 @@ def main():
             j = rp - (W - 1)
             if j < 16 or j > len(post) - 48:
                 continue
-            ph3, cf3 = run_filter(post, args.reset_prob, temper)
+            ph3, cf3 = run(post, args.reset_prob, temper=temper)
             t = first_lock(ph3[j:], cf3[j:], truth[j:], args.thresh, args.hold)
             change.append(t)
 

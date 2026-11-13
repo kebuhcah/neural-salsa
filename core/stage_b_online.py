@@ -21,51 +21,77 @@ N = 8
 
 
 class PhaseFilter:
-    """Forward algorithm over 8 phase states. One update per beat."""
+    """Forward algorithm over 8 phase states. One update per beat.
 
-    def __init__(self, reset_prob=6e-4, stride=1):
+    The single definition of the filter: experiments/stage_b_eval_online.py
+    (section 7) and tools/lock_latency.py (NOTES 14u) both run it through
+    track(). It filters one listener (belief shape (8,)) or many at once
+    (`batch=S`, belief (S, 8)); every operation works on the last axis, so
+    the two cases share one code path.
+    """
+
+    def __init__(self, reset_prob=6e-4, stride=1, temper=1.0, batch=None):
         self.r = reset_prob
         # Beats advanced per update. Only 1 when every beat is observed; if
         # the caller subsamples (e.g. to decorrelate overlapping windows) the
         # phase advances by `stride` between updates, and rolling by 1 instead
         # silently destroys the transition model.
         self.stride = stride
-        self.belief = np.full(N, 1.0 / N)
+        # Each likelihood is raised to this power before the update: overlapping
+        # windows are not independent evidence, so a < 1 counts each one less
+        # (sections 7, 14u).
+        self.temper = temper
+        self.shape = (N,) if batch is None else (batch, N)
+        self.reset()
 
     def update(self, likelihood):
-        """likelihood: (8,) P(observation | count). Returns posterior."""
+        """likelihood: P(observation | count), shaped like the belief. A nan
+        row is no observation -- e.g. before a model's first full window --
+        and leaves that belief to the prediction step. Returns the posterior."""
         b = self.belief
         # Predict: phase advances by `stride`; with prob r the phrase restarts.
-        pred = (1 - self.r) * np.roll(b, self.stride)
-        pred[0] += self.r * b.sum()
-        # Correct.
-        post = pred * np.asarray(likelihood, dtype=float)
-        s = post.sum()
-        self.belief = post / s if s > 0 else np.full(N, 1.0 / N)
+        pred = (1 - self.r) * np.roll(b, self.stride, axis=-1)
+        pred[..., 0] += self.r * b.sum(-1)
+        # Correct. The floor keeps a tempered zero from wiping out a state.
+        lk = np.asarray(likelihood, dtype=float)
+        lk = np.where(np.isnan(lk), 1.0, np.clip(lk, 1e-12, None) ** self.temper)
+        post = pred * lk
+        s = post.sum(-1, keepdims=True)
+        self.belief = np.where(s > 0, post / np.where(s > 0, s, 1), 1.0 / N)
         return self.belief
 
     def reset(self, belief=None):
-        self.belief = np.full(N, 1.0 / N) if belief is None else np.asarray(belief)
+        self.belief = (np.full(self.shape, 1.0 / N) if belief is None
+                       else np.broadcast_to(np.asarray(belief, dtype=float), self.shape).copy())
 
     @property
     def phase(self):
-        return int(np.argmax(self.belief))
+        p = self.belief.argmax(-1)
+        return int(p) if p.ndim == 0 else p
 
     @property
     def confidence(self):
-        return float(self.belief.max())
+        c = self.belief.max(-1)
+        return float(c) if c.ndim == 0 else c
 
 
-def run(likelihoods, reset_prob=6e-4, init=None):
-    """Returns (phases, confidences) over a sequence of per-beat likelihoods."""
-    f = PhaseFilter(reset_prob)
+def track(likelihoods, reset_prob=6e-4, temper=1.0, init=None, stride=1):
+    """Filter a sequence: likelihoods [T, 8] for one listener or [S, T, 8] for
+    S listeners at once. Returns the beliefs after each update, same shape."""
+    lk = np.asarray(likelihoods, dtype=float)
+    f = PhaseFilter(reset_prob, stride, temper, batch=None if lk.ndim == 2 else lk.shape[0])
     if init is not None:
         f.reset(init)
-    ph, cf = [], []
-    for lk in likelihoods:
-        f.update(lk)
-        ph.append(f.phase); cf.append(f.confidence)
-    return np.array(ph), np.array(cf)
+    out = np.empty(lk.shape)
+    for t in range(lk.shape[-2]):
+        out[..., t, :] = f.update(lk[..., t, :])
+    return out
+
+
+def run(likelihoods, reset_prob=6e-4, init=None, temper=1.0, stride=1):
+    """Returns (phases, confidences) over a sequence of per-beat likelihoods."""
+    B = track(likelihoods, reset_prob, temper, init, stride)
+    return B.argmax(-1), B.max(-1)
 
 
 def time_to_lock(phases, confs, truth, thresh=0.9, hold=4):

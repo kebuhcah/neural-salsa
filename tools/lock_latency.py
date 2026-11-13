@@ -14,8 +14,8 @@ it sure? Redoes section 7 with the fixes listed there:
     independent evidence. a is cross-fitted like T: fold k's a minimises the
     filter's NLL of the true count, over beats heard 1..H, on the other folds.
 
-Filter: core/stage_b_online.PhaseFilter's transition -- advance one count per
-beat, reset onto count 1 with probability r per beat (default 6e-4, the
+Filter: core/stage_b_online.PhaseFilter, all listeners at once -- advance one
+count per beat, reset onto count 1 with probability r per beat (default 6e-4, the
 corpus rate of annotated shifts, every one of which lands on count 1).
 
 Start groups (a start may be in several; "steady" excludes the others):
@@ -55,6 +55,7 @@ from scipy.special import log_softmax
 from ensemble import load
 from train_phase import load_all
 from transition_profile import find_events
+from stage_b_online import track
 
 N = 8
 TEMPERS = (1.0, 0.5, 0.35, 0.25, 0.18, 0.12, 0.08, 0.05, 0.03)
@@ -70,25 +71,6 @@ def likelihoods(path, T):
         p = np.full((n, N), np.nan)
         p[d["beats"].astype(int)] = np.exp(log_softmax(d["logp"] / T, 1))
         out[int(si)] = p
-    return out
-
-
-def run_filter(lk, a, r):
-    """Forward filter for many listeners at once.
-
-    lk: [n_starts, H, 8] per-beat probabilities (nan = no output yet).
-    Returns beliefs [n_starts, H, 8] after each beat heard."""
-    S, H, _ = lk.shape
-    b = np.full((S, N), 1.0 / N)
-    out = np.empty((S, H, N))
-    for t in range(H):
-        pred = (1 - r) * np.roll(b, 1, axis=1)
-        pred[:, 0] += r
-        l = lk[:, t]
-        l = np.where(np.isnan(l), 1.0, np.clip(l, 1e-12, None) ** a)
-        b = pred * l
-        b /= b.sum(1, keepdims=True)
-        out[:, t] = b
     return out
 
 
@@ -179,7 +161,7 @@ def main():
             tot = cnt = 0.0
             for k in k_list:
                 L = np.stack([x[0] for x in folds[k]["cold"]]); Y = np.stack([x[1] for x in folds[k]["cold"]])
-                B = run_filter(L, t, a.reset_prob)
+                B = track(L, a.reset_prob, temper=t)
                 pt = np.take_along_axis(B, Y[..., None], 2)[..., 0]
                 tot += -np.log(np.clip(pt, 1e-12, None)).sum(); cnt += pt.size
             return tot / cnt
@@ -198,13 +180,13 @@ def main():
                     continue
                 if kind == "follow":
                     L = np.stack([x[0] for x in rows]); Y = np.stack([x[1] for x in rows])
-                    B = run_filter(L, tempers[k], a.reset_prob)
+                    B = track(L, a.reset_prob, temper=tempers[k])
                     off = rows[0][3]                     # 32: score from the shift beat on
                     B, Y, L = B[:, off:], Y[:, off:], L[:, off:]
                     gs = [{"follow"}] * len(rows)
                 else:
                     L = np.stack([x[0] for x in rows]); Y = np.stack([x[1] for x in rows])
-                    B = run_filter(L, tempers[k], a.reset_prob)
+                    B = track(L, a.reset_prob, temper=tempers[k])
                     gs = [x[3] for x in rows]
                 ph, cf = B.argmax(2), B.max(2)
                 right = ph == Y
